@@ -5,7 +5,7 @@ Installing TeachMyAgent Package and necessary libraries
 
 Copy repo:
 ```
-git clone https://github.com/flowersteam/TeachMyAgent
+git clone https://github.com/hansungkim98122/285_project.git
 ```
 
 #Python 3.10
@@ -17,4 +17,10 @@ pip install -e .
 
 ```
 pip install pyglet==1.5.27
+```
+
+
+To create a test environment, run:
+```
+python test.py
 ```
