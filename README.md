@@ -22,5 +22,6 @@ pip install pyglet==1.5.27
 
 To create a test environment, run:
 ```
+cd TeachMyAgent_modified/
 python test.py
 ```
