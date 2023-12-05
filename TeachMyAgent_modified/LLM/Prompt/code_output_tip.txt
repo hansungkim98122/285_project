@@ -1,0 +1,5 @@
+Your designed array should be wrapped with "[]", and each number should be separated with ",".
+Some helpful tips for designing a terrain :
+    (1) The terrain should be relatively continuous. 
+    (2) Easier terrain should be more flat, harder terrain should be more bumpy.
+    (3) Do not have skyrocketing change in height, the agent cannot fly. 
