@@ -8,7 +8,7 @@ Copy repo:
 git clone https://github.com/hansungkim98122/285_project.git
 ```
 
-#Python 3.10
+Python 3.10
 Installing the Environment:
 ```
 conda create --name teachMyAgent
