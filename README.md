@@ -22,6 +22,7 @@ pip install pyglet==1.5.27
 ```
 cd 285_project
 pip install -e .
+pip install -r requirements.txt
 ```
 
 Run these following tests to ensure that the environment is configured correctly:
