@@ -6,7 +6,7 @@ class TanHSoftplusMixCPPN(BaseCPPN):
         Feedforward CPPN with 4 layers of 64 units alternating TanH/Softplus activation functions.
     '''
     def generator(self):
-        # tf.reset_default_graph()
+        tf.compat.v1.reset_default_graph()
         tf.compat.v1.disable_eager_execution()
         # inputs to cppn
         self.input = tf.compat.v1.placeholder(tf.float32, [self.x_dim, self.input_dim + 1])
