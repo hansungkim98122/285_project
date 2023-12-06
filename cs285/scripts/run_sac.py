@@ -171,7 +171,7 @@ def main():
     args = parser.parse_args()
 
     # create directory for logging
-    logdir_prefix = "hw3_sac_"  # keep for autograder
+    logdir_prefix = ""  # keep for autograder
 
     config = make_config(args.config_file)
     logger = make_logger(logdir_prefix, config)

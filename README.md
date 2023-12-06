@@ -35,8 +35,15 @@ python test_env.py
 ```
 
 # Run Experiments
+
+SAC Agent
 ```
-python cs285/scripts/run_dqn.py -cfg experiments/dqn/parkour.yaml
+python cs285/scripts/run_sac.py -cfg experiments/sac/parkour.yaml
+```
+
+PPO Agent
+```
+python cs285/scripts/run_ppo.py -cfg experiments/ppo/parkour.yaml
 ```
 
 

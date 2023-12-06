@@ -11,6 +11,7 @@ def make_config(config_file: str) -> dict:
         config_kwargs = yaml.load(f, Loader=yaml.SafeLoader)
 
     base_config_name = config_kwargs.pop("base_config")
+    print(cs285.env_configs.configs)
     return cs285.env_configs.configs[base_config_name](**config_kwargs)
 
 def make_logger(logdir_prefix: str, config: dict) -> Logger:
