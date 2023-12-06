@@ -30,9 +30,13 @@ Run these following tests to ensure that the environment is configured correctly
 python test_imports.py
 ```
 
-
 ```
 python test_env.py
+```
+
+# Run Experiments
+```
+python cs285/scripts/run_dqn.py -cfg experiments/dqn/parkour.yaml
 ```
 
 

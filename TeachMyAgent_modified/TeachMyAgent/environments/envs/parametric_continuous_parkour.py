@@ -212,7 +212,6 @@ class ParametricContinuousParkour(gym.Env, EzPickle):
         if CPPN_weights_path is None:
             current_path = os.path.dirname(os.path.realpath(__file__))
             CPPN_weights_path = os.path.join(current_path, "PCGAgents/CPPN/weights/same_ground_ceiling_cppn/")
-
         self.terrain_CPPN = TanHSoftplusMixCPPN(x_dim=TERRAIN_LENGTH,
                                                 input_dim=input_CPPN_dim,
                                                 weights_path=CPPN_weights_path,

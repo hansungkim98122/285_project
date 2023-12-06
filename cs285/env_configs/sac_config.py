@@ -13,7 +13,7 @@ import cs285.infrastructure.pytorch_util as ptu
 from gym.wrappers.rescale_action import RescaleAction
 from gym.wrappers.clip_action import ClipAction
 from gym.wrappers.record_episode_statistics import RecordEpisodeStatistics
-
+import TeachMyAgent.environments
 
 def sac_config(
     env_name: str,
@@ -89,12 +89,12 @@ def sac_config(
     ) -> torch.optim.lr_scheduler._LRScheduler:
         return torch.optim.lr_scheduler.ConstantLR(optimizer, factor=1.0)
 
-    def make_env(render: bool = False):
+    def make_env(render: bool = False,**kwargs):
         return RecordEpisodeStatistics(
             ClipAction(
                 RescaleAction(
                     gym.make(
-                        env_name, render_mode="single_rgb_array" if render else None
+                        env_name, **kwargs
                     ),
                     -1,
                     1,

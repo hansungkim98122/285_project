@@ -13,6 +13,7 @@ from cs285.env_configs.schedule import (
     ConstantSchedule,
 )
 import cs285.infrastructure.pytorch_util as ptu
+import TeachMyAgent.environments
 
 def basic_dqn_config(
     env_name: str,
@@ -53,8 +54,8 @@ def basic_dqn_config(
         outside_value=0.02,
     )
 
-    def make_env(render: bool = False):
-        return RecordEpisodeStatistics(gym.make(env_name, render_mode="rgb_array" if render else None))
+    def make_env(render: bool = False,**kwargs):
+        return RecordEpisodeStatistics(gym.make(env_name, **kwargs))
 
     log_string = "{}_{}_s{}_l{}_d{}".format(
         exp_name or "dqn",

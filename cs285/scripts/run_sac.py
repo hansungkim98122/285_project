@@ -22,6 +22,7 @@ from cs285.infrastructure.logger import Logger
 from scripting_utils import make_logger, make_config
 
 import argparse
+import TeachMyAgent.environments
 
 
 def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
@@ -31,9 +32,18 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     ptu.init_gpu(use_gpu=not args.no_gpu, gpu_id=args.which_gpu)
 
     # make the gym environment
-    env = config["make_env"]()
-    eval_env = config["make_env"]()
-    render_env = config["make_env"](render=True)
+    env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True)
+    eval_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True)
+    render_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True)
+
+    input_vector = np.array([-0.058,0.912,0.367])
+    env.set_environment(input_vector=input_vector, water_level = -100)
+
+    input_vector = np.array([-0.058,0.912,0.367])
+    eval_env.set_environment(input_vector=input_vector, water_level = -100)
+
+    input_vector = np.array([-0.058,0.912,0.367])
+    render_env.set_environment(input_vector=input_vector, water_level = -100)
 
     ep_len = config["ep_len"] or env.spec.max_episode_steps
     batch_size = config["batch_size"] or batch_size
@@ -47,11 +57,11 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     ac_dim = env.action_space.shape[0]
 
     # simulation timestep, will be used for video saving
-    if "model" in dir(env):
-        fps = 1 / env.model.opt.timestep
-    else:
-        fps = env.env.metadata["render_fps"]
-
+    # if "model" in dir(env):
+    #     fps = 1 / env.model.opt.timestep
+    # else:
+    #     fps = env.env.metadata["render_fps"]
+    fps = 20
     # initialize agent
     agent = SoftActorCritic(
         ob_shape,
@@ -69,7 +79,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         else:
             # TODO(student): Select an action
             action = agent.get_action(observation)
-
+        # print(f'step {step} action: {action}')
         # Step the environment and add the data to the replay buffer
         next_observation, reward, done, info = env.step(action)
         replay_buffer.insert(
@@ -142,6 +152,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
                     max_videos_to_save=args.num_render_trajectories,
                     video_title="eval_rollouts",
                 )
+        
 
 
 def main():

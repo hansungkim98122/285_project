@@ -3,6 +3,7 @@ import argparse
 
 from cs285.agents.dqn_agent import DQNAgent
 import cs285.env_configs
+import TeachMyAgent.environments
 
 import os
 import time
@@ -30,9 +31,19 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     ptu.init_gpu(use_gpu=not args.no_gpu, gpu_id=args.which_gpu)
 
     # make the gym environment
-    env = config["make_env"]()
-    eval_env = config["make_env"]()
-    render_env = config["make_env"](render=True)
+    env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True)
+    eval_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True)
+    render_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True)
+
+    input_vector = np.array([-0.058,0.912,0.367])
+    env.set_environment(input_vector=input_vector, water_level = 0.1)
+
+    input_vector = np.array([-0.058,0.912,0.367])
+    eval_env.set_environment(input_vector=input_vector, water_level = 0.1)
+
+    input_vector = np.array([-0.058,0.912,0.367])
+    render_env.set_environment(input_vector=input_vector, water_level = 0.1)
+
     exploration_schedule = config["exploration_schedule"]
     discrete = isinstance(env.action_space, gym.spaces.Discrete)
 
