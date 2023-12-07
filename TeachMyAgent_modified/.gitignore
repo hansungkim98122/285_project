@@ -112,3 +112,6 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# Large Lanuage Model Logs
+llmlog/

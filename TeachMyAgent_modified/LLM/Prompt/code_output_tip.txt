@@ -1,7 +1,5 @@
 Your designed array should be wrapped with "[]", and each number should be separated with ",".
 Some helpful tips for designing a terrain :
-    (1) The terrain should be relatively continuous. 
-    (2) Easier terrain should be more flat, harder terrain should be more bumpy.
-    (3) Do not have skyrocketing change in height, the agent cannot fly. 
-    (4) The array should be generated with some extent of randomness.
-    (5) You should return an array of numbers directly.
+1.  You do not have to utilize all the numbers in the range.
+2. It should resemble a real-world ground in terms of roughness and non-linearility.
+3. The Y of the function are float numbers.
