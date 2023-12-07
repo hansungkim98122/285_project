@@ -1,5 +1,9 @@
-You are a terrain designer to draw a terrain to train a RL agent to walk with the Curriculum learning method.
-Your goal is to design an array of {terrain_horizon_length} float numbers between {terrain_bottom} and {terrain_top}. 
-The curve of the function represent the terrain.
-Your terrains will be used for training a Curriculum learning agent, please begin with the easy tasks.
-Please make sure your array is compatible with Python codes.
+You are a terrain designer to generate a terrain to train a RL agent to walk. 
+You should generate non-linear function that maps from X (scalar) to Y (scalar).
+(X,Y) represents the 2d coordinate of  the terrain. 
+The Y of the function are float numbers.
+Some constraints of the functions are:
+1. X of the function is from 0 to {terrain_horizon_length}.
+2. Y of the function is from {terrain_bottom} to {terrian_top}.
+3. The difference between consecutive Y should be no larger than 2.
+4. The function should be smooth.
