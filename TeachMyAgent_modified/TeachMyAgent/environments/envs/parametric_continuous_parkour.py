@@ -278,7 +278,7 @@ class ParametricContinuousParkour(gym.Env, EzPickle):
 
         self.agent_body.destroy(self.world)
 
-    def reset(self):
+    def reset(self, y_terrain=None):
         self.world.contactListener = None
         self.contact_listener.Reset()
         self._destroy()
@@ -291,7 +291,7 @@ class ParametricContinuousParkour(gym.Env, EzPickle):
         self.nb_steps_outside_water = 0
         self.nb_steps_under_water = 0
 
-        self.generate_game()
+        self.generate_game(y_terrain)
 
         self.drawlist = self.terrain + self.agent_body.get_elements_to_render()
 
@@ -588,11 +588,14 @@ class ParametricContinuousParkour(gym.Env, EzPickle):
     # region Game Generation
     # ------------------------------------------ GAME GENERATION ------------------------------------------
 
-    def generate_game(self):
+    def generate_game(self, y_terrain):
         '''
             Generate the task (i.e. terrain + embodiment).
         '''
-        self._generate_terrain()
+        if y_terrain:
+            self._manually_set_terrain(y_terrain[0], y_terrain[1])
+        else:
+            self._generate_terrain()
         self._generate_clouds()
         self._generate_agent()
 
@@ -602,6 +605,170 @@ class ParametricContinuousParkour(gym.Env, EzPickle):
         else:
             return row["ground"] + clip_offset
 
+    def _manually_set_terrain(self, ground_y, ceiling_y):
+        # Align ground with startpad
+        offset = TERRAIN_HEIGHT - ground_y[0]
+        ground_y = np.add(ground_y, offset)
+
+        # Align ceiling from startpad ceiling
+        offset = TERRAIN_HEIGHT + self.ceiling_offset - ceiling_y[0]
+        ceiling_y = np.add(ceiling_y, offset)
+
+        self.terrain = []
+        self.terrain_x = []
+        self.terrain_ground_y = []
+        self.terrain_ceiling_y = []
+        terrain_creepers = []
+        water_body = None
+        x = 0
+        max_x = TERRAIN_LENGTH * TERRAIN_STEP + self.TERRAIN_STARTPAD * TERRAIN_STEP
+
+        # Generation of terrain
+        i = 0
+        while x < max_x:
+            self.terrain_x.append(x)
+            if i < self.TERRAIN_STARTPAD:
+                self.terrain_ground_y.append(TERRAIN_HEIGHT)
+                self.terrain_ceiling_y.append(TERRAIN_HEIGHT + self.ceiling_offset)
+            else:
+                self.terrain_ground_y.append(ground_y[i - self.TERRAIN_STARTPAD].item())
+
+                # Clip ceiling
+                if ceiling_y[i - self.TERRAIN_STARTPAD] >= ground_y[i - self.TERRAIN_STARTPAD] + self.ceiling_clip_offset:
+                    ceiling_val = ceiling_y[i - self.TERRAIN_STARTPAD]
+                else:
+                    ceiling_val = ground_y[i - self.TERRAIN_STARTPAD] + self.ceiling_clip_offset
+
+                self.terrain_ceiling_y.append(ceiling_val.item())
+
+            x += TERRAIN_STEP
+            i += 1
+
+        # Draw terrain
+        space_from_precedent_creeper = self.creepers_spacing
+        self.terrain_poly = []
+        for i in range(len(self.terrain_x) - 1):
+            # Ground
+            poly = [
+                (self.terrain_x[i], self.terrain_ground_y[i]),
+                (self.terrain_x[i + 1], self.terrain_ground_y[i + 1])
+            ]
+            self.fd_edge.shape.vertices = poly
+            t = self.world.CreateStaticBody(
+                fixtures=self.fd_edge,
+                userData=CustomUserData("grass", CustomUserDataObjectTypes.TERRAIN))
+            color = (0.3, 1.0 if (i % 2) == 0 else 0.8, 0.3)
+            t.color1 = color
+            t.color2 = color
+            self.terrain.append(t)
+            color = (0.4, 0.6, 0.3)
+            poly += [(poly[1][0], self.GROUND_LIMIT), (poly[0][0], self.GROUND_LIMIT)]
+            self.terrain_poly.append((poly, color))
+
+            # Ceiling
+            poly = [
+                (self.terrain_x[i], self.terrain_ceiling_y[i]),
+                (self.terrain_x[i + 1], self.terrain_ceiling_y[i + 1])
+            ]
+            self.fd_edge.shape.vertices = poly
+            t = self.world.CreateStaticBody(
+                fixtures=self.fd_edge,
+                userData=CustomUserData("rock", CustomUserDataObjectTypes.GRIP_TERRAIN))
+            color = (0, 0.25, 0.25)
+            t.color1 = color
+            t.color2 = color
+            self.terrain.append(t)
+            color = (0.5, 0.5, 0.5)
+            poly += [(poly[1][0], self.CEILING_LIMIT), (poly[0][0], self.CEILING_LIMIT)]
+            self.terrain_poly.append((poly, color))
+
+            # Creepers
+            if self.creepers_width is not None and self.creepers_height is not None:
+                if space_from_precedent_creeper >= self.creepers_spacing:
+                    creeper_height = max(0.2, self.np_random.normal(self.creepers_height, 0.1))
+                    creeper_width = max(0.2, self.creepers_width)
+                    creeper_step_size = np.floor(creeper_width / TERRAIN_STEP).astype(int)
+                    creeper_step_size = max(1, creeper_step_size)
+                    creeper_y_init_pos = max(self.terrain_ceiling_y[i],
+                                             self.terrain_ceiling_y[min(i + creeper_step_size, len(self.terrain_x) - 1)])
+                    if self.movable_creepers: # Break down creepers into multiple objects linked by joints
+                        previous_creeper_part = t
+                        for w in range(math.ceil(creeper_height)):
+                            if w == creeper_height // 1:
+                                h = max(0.2, creeper_height % 1)
+                            else:
+                                h = 1
+
+                            poly = [
+                                (self.terrain_x[i] + creeper_width, creeper_y_init_pos - (w * 1) - h),
+                                (self.terrain_x[i] + creeper_width, creeper_y_init_pos - (w * 1)),
+                                (self.terrain_x[i], creeper_y_init_pos - (w * 1)),
+                                (self.terrain_x[i], creeper_y_init_pos - (w * 1) - h)
+                            ]
+                            self.fd_creeper.shape.vertices = poly
+                            t = self.world.CreateDynamicBody(
+                                fixtures=self.fd_creeper,
+                                userData=CustomUserData("creeper", CustomUserDataObjectTypes.SENSOR_GRIP_TERRAIN))
+                            c = (0.437, 0.504, 0.375)
+                            t.color1 = c
+                            t.color2 = tuple([_c+0.1 for _c  in c])
+                            self.terrain.append(t)
+
+                            rjd = revoluteJointDef(
+                                bodyA=previous_creeper_part,
+                                bodyB=t,
+                                anchor=(self.terrain_x[i] + creeper_width / 2, creeper_y_init_pos - (w * 1)),
+                                enableLimit=True,
+                                lowerAngle=-0.4 * np.pi,
+                                upperAngle=0.4 * np.pi,
+                            )
+                            self.world.CreateJoint(rjd)
+                            previous_creeper_part = t
+                    else:
+                        poly = [
+                            (self.terrain_x[i], creeper_y_init_pos),
+                            (self.terrain_x[i] + creeper_width, creeper_y_init_pos),
+                            (self.terrain_x[i] + creeper_width, creeper_y_init_pos - creeper_height),
+                            (self.terrain_x[i], creeper_y_init_pos - creeper_height),
+                        ]
+                        self.fd_creeper.shape.vertices = poly
+                        t = self.world.CreateStaticBody(
+                            fixtures=self.fd_creeper,
+                            userData=CustomUserData("creeper", CustomUserDataObjectTypes.SENSOR_GRIP_TERRAIN))
+                        c = (0.437, 0.504, 0.375)
+                        t.color1 = c
+                        t.color2 = c
+                        terrain_creepers.append(t)
+                    space_from_precedent_creeper = 0
+                else:
+                    space_from_precedent_creeper += self.terrain_x[i] - self.terrain_x[i - 1]
+
+        # Water
+        # Fill water from GROUND_LIMIT to highest point of the current ceiling
+        air_max_distance = max(self.terrain_ceiling_y) - self.GROUND_LIMIT
+        water_y = self.GROUND_LIMIT + self.water_level * air_max_distance
+        self.water_y = water_y
+
+        water_poly = [
+            (self.terrain_x[0], self.GROUND_LIMIT),
+            (self.terrain_x[0], water_y),
+            (self.terrain_x[len(self.terrain_x) - 1], water_y),
+            (self.terrain_x[len(self.terrain_x) - 1], self.GROUND_LIMIT)
+        ]
+        self.fd_water.shape.vertices = water_poly
+        t = self.world.CreateStaticBody(
+            fixtures=self.fd_water,
+            userData=CustomUserData("water", CustomUserDataObjectTypes.WATER))
+        c = (0.465, 0.676, 0.898)
+        t.color1 = c
+        t.color2 = c
+        water_body = t
+
+        self.terrain.extend(terrain_creepers)
+        if water_body is not None:
+            self.terrain.append(water_body)
+        self.terrain.reverse()
+        
     def _generate_terrain(self):
         y = self.terrain_CPPN.generate(self.CPPN_input_vector)
         y = y / self.TERRAIN_CPPN_SCALE

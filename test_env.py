@@ -4,13 +4,9 @@ import gym
 import TeachMyAgent_modified.TeachMyAgent.environments
 
 env = gym.make('parametric-continuous-parkour-v0', agent_body_type='classic_bipedal', movable_creepers=True)
-input_vector = np.array([-0.058,0.912,0.367])
-env.set_environment(input_vector=input_vector, water_level = 0.1)
-print(env.world.contactListener)
+input_vector = np.array([-0.45,0.697,-0.044])
+env.set_environment(input_vector=input_vector, water_level = -100)
 env.reset()
-print(env.world.contactListener)
-env.reset()
-print(env.world.contactListener)
 
 total_steps =1000
 
