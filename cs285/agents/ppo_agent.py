@@ -252,7 +252,6 @@ class PPO(nn.Module):
             q_values = self.critic(obs,acs)
             assert q_values.shape == (
                 self.num_critic_networks,
-                self.num_actor_samples,
                 batch_size,
             ), q_values.shape
 
@@ -277,7 +276,7 @@ class PPO(nn.Module):
         Update the actor by one gradient step using either REPARAMETRIZE or REINFORCE.
         """
 
-        loss, entropy = self.actor_loss_reinforce(obs,acs)
+        loss, entropy = self.actor_loss(obs,acs)
 
         # Add entropy if necessary
         if self.use_entropy_bonus:
