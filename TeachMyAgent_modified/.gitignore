@@ -115,3 +115,5 @@ cython_debug/
 
 # Large Lanuage Model Logs
 llmlog/
+
+.DS_Store
