@@ -15,7 +15,6 @@ TeachMyAgent_modified/slurm_campain_launcher.py
 TeachMyAgent_modified/test.py
 TeachMyAgent_modified/to_run.txt
 TeachMyAgent_modified/.github/workflows/generate_doc.yml
-TeachMyAgent_modified/LLM/TerrianGen.py
 TeachMyAgent_modified/LLM/Prompt/code_feedback.txt
 TeachMyAgent_modified/LLM/Prompt/code_output_tip.txt
 TeachMyAgent_modified/LLM/Prompt/execution_error_feedback.txt

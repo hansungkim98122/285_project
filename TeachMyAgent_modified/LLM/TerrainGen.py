@@ -10,9 +10,14 @@ import subprocess
 from pathlib import Path
 import shutil
 import time 
+from collections import defaultdict
+from datetime import datetime
+
+from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
+
 
 # set logging level to info
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 def file_to_string(filename):
     with open(filename, 'r') as file:
@@ -61,11 +66,12 @@ class LLMTerrianGenerator:
         if not os.path.exists('./llmlog'):
             os.makedirs('./llmlog')
         self.message_log = f"llmlog/message_{formatted_date}.txt"
-
+        logging.info(f"Message is logged in: {self.message_log}")
+        
         openai.api_key = os.getenv("OPENAI_API_KEY")
     
        # Loading all text prompts
-        prompt_dir = 'Prompt'
+        prompt_dir = './TeachMyAgent_modified/LLM/Prompt'
         self.initial_system = file_to_string(f'{prompt_dir}/initial_system.txt')
         terrain_example = file_to_string(f'{prompt_dir}/terrain_example.txt')
         self.code_output_tip = file_to_string(f'{prompt_dir}/code_output_tip.txt')+terrain_example
@@ -90,7 +96,7 @@ class LLMTerrianGenerator:
         total_token = 0
         total_completion_token = 0
         
-        logging.info(f"Generating {self.sample} samples with {self.model}")
+        logging.info(f"Generating samples with {self.model}")
         total_samples = 0
   
         for attempt in range(10):
@@ -133,13 +139,12 @@ class LLMTerrianGenerator:
         if debug:
             plt.plot(ret)
             plt.ylim(-20,20)
-            plt.show()
         ret = LLMTerrianGenerator.smooth_array(ret, self.smooth_window)
         logging.info(f"The generated terrain is {ret}")
         if debug:
             plt.plot(ret)
             plt.ylim(-20,20)
-            plt.show()
+            plt.savefig('terrain.png')
         return ret
     
     def _log_messge(self,message,log_format='json'):
@@ -158,10 +163,12 @@ class LLMTerrianGenerator:
             raise NotImplementedError(f"log_format {log_format} not implemented!")
         
     def init_generate(self,debug:bool = False):
+        logging.info("Generating initial terrain...")
         message = self._callOpenAI(self.messages,debug)
         return message
 
     def iter_generate(self,tensorboard_logdir: str = None,debug:bool = False):
+        logging.info("Generating terrain with updated metric...")
         self._update_message(tensorboard_logdir)
         message = self._callOpenAI(self.messages,debug) 
         return message
@@ -238,3 +245,18 @@ class LLMTerrianGenerator:
         smoothed_arr = np.convolve(arr, kernel, mode='valid')
 
         return smoothed_arr
+
+
+if __name__ == '__main__':
+    horizon = 200
+    top = 20
+    bottom = -20
+    model = "gpt-3.5-turbo"
+    temperature = 0.5
+    sample = 4
+    smooth_window = 25
+
+    llm = LLMTerrianGenerator(horizon, top, bottom, model, temperature, sample, smooth_window)
+    terrain = llm.init_generate(debug=True)
+
+    print(terrain)
