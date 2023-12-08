@@ -1,5 +1,11 @@
+
+Below are the constrains that you must follow when constructing the array.
+(1) The change of consecutive altitude should be smaller than 2 and greater than -2
+(2) The terrain should be smooth and continuous.
+(3) Start the terrain with 0.1.
+
 Your designed array should be wrapped with "[]", and each number should be separated with ",".
+
 Some helpful tips for designing a terrain :
-1.  You do not have to utilize all the numbers in the range.
-2. It should resemble a real-world ground in terms of roughness and non-linearility.
-3. The Y of the function are float numbers.
+(1) You do not have to utilize all the numbers in the range.
+(2) It should resemble a real-world ground in terms of roughness and non-linearility.
