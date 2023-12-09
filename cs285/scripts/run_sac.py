@@ -35,7 +35,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     ptu.init_gpu(use_gpu=not args.no_gpu, gpu_id=args.which_gpu)
 
     # make the gym environment
-    if config["mode"] == 'manual':
+    if args.mode == 'manual':
         env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True)
         eval_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True)
         render_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True)
@@ -50,7 +50,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         render_env.set_environment(input_vector=input_vector, water_level = -100)
     else:
         #Load LLM config
-        with open(config['llm_config_file'], 'r') as f:
+        with open(args.llm_config_file, 'r') as f:
             llm_config = yaml.load(f, Loader=yaml.FullLoader)
 
         #Initialize the terrain generator (LLM)
