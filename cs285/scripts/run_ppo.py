@@ -8,6 +8,9 @@ from cs285.infrastructure.replay_buffer import ReplayBuffer
 import cs285.env_configs
 
 import os
+import sys
+sys.path.append('/'.join(os.getcwd().split('/')[:-2]) + '/TeachMyAgent_modified/')
+import LLM.TerrainGen
 import time
 
 import gym

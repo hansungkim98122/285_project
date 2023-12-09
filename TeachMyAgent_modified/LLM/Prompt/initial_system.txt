@@ -2,8 +2,6 @@ You are a terrain designer.
 Your goal is to return an array representing the altitude of a continuous terrain.
 
 The length of the array is {terrain_horizon_length}.
-The length of the array is {terrain_horizon_length}.
-The length of the array is {terrain_horizon_length}.
 
 The altitude are float numbers.
 The numbers should be in the range of [{terrain_bottom}, {terrain_top}]
