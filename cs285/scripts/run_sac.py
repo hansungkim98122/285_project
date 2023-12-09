@@ -56,7 +56,8 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
 
         #Initialize the terrain generator (LLM)
         try:
-            llm = LLMTerrianGenerator(llm_config['horizon'], llm_config['top'], llm_config['bottom'], llm_config['model'], llm_config['temperature'], llm_config['sample'], llm_config["smooth_window"])
+            # llm = LLMTerrianGenerator(llm_config['horizon'], llm_config['top'], llm_config['bottom'], llm_config['model'], llm_config['temperature'], llm_config['sample'], llm_config["smooth_window"])
+            llm = LLMTerrianGenerator(llm_config)
             print('LLM successfully Generated')
         except:
             print('ERROR: Could not initialize LLM. Exiting.')
