@@ -1,5 +1,5 @@
 # import hydra
-import numpy as np 
+import numpy as np
 import json
 import logging 
 import matplotlib.pyplot as plt
@@ -37,7 +37,7 @@ def load_tensorboard_logs(path):
 
 class LLMTerrianGenerator:
     
-    def __init__(self, 
+    def __init__(self, cfg: dict):
                  horizon: int, 
                  top, 
                  bottom, 
@@ -49,20 +49,22 @@ class LLMTerrianGenerator:
         self.logger = logging.getLogger(__name__)
         
         self.logger.info("LLMTerrianGenerator initializing...")
-        self.horizon = horizon
-        self.top = top+0.01
-        self.bottom = bottom-0.01
-        self.model = model 
-        self.temperature = temperature
-        self.sample = sample
+        self.horizon = cfg['horizon']
+        self.top = cfg['top'] +0.01
+        self.bottom = cfg['bottom']-0.01
+        self.model = cfg['model'] 
+        self.temperature = cfg['temperature']
+        self.sample = cfg['sample']
         self.chunk_size = 4
-        self.smooth_window = smooth_window
+        self.smooth_window = cfg['smooth_window']
+        
+        openai.api_key = cfg['openaikey']
         # This is to store all the responses.
         self.responses = []
 
         current_datetime = datetime.now()
         formatted_date = current_datetime.strftime('%d-%m-%Y-%H-%M-%S')
-        
+       
         if not os.path.exists('./llmlog'):
             os.makedirs('./llmlog')
         self.message_log = f"llmlog/message_{formatted_date}.txt"
@@ -135,7 +137,10 @@ class LLMTerrianGenerator:
         ret = self.responses[0]['message']['content']
         if debug:
             print(ret)
-        ret = list(map(float,ret.split('[')[-1].split(']')[0].split(', ')[:200]))
+        ret = list(map(float,ret.split('[')[-1].split(']')[0].split(', ')))
+        ret = ret+ret[-1]*100
+        ret = ret[:self.horizon]
+        
         if debug:
             plt.plot(ret)
             plt.ylim(-20,20)
@@ -145,6 +150,7 @@ class LLMTerrianGenerator:
             plt.plot(ret)
             plt.ylim(-20,20)
             plt.savefig('terrain.png')
+        assert len(ret) == self.horizon, "The length of the generated terrain is not correct!"
         return ret
     
     def _log_messge(self,message,log_format='json'):
