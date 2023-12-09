@@ -5,3 +5,4 @@
     temperature: 0.5
     sample: 4
     smooth_window: 25
+    openaikey: "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"

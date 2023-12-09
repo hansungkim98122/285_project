@@ -1,6 +1,7 @@
 import os
 import time
 import yaml
+import pdb
 
 from cs285.agents.soft_actor_critic import SoftActorCritic
 from cs285.infrastructure.replay_buffer import ReplayBuffer
@@ -65,7 +66,9 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         eval_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, mode='llm')
         render_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, mode='llm')
 
-        ground_y = llm.init_generate(debug=True)
+        ground_y = llm.init_generate(debug=True) #(200,)
+
+        pdb.set_trace()
         y_terrain = np.vstack((ground_y,ground_y + 100)) #100 is the hardcoded offset for the ceiling
 
         assert y_terrain.shape == (2,200)

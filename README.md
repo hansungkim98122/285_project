@@ -1,4 +1,4 @@
-export OPENAI_API_KEY= "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"
+export OPENAI_API_KEY="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"
 
 
 Installing TeachMyAgent Package and necessary libraries
