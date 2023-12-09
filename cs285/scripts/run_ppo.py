@@ -60,6 +60,17 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         input_vector = np.array([-0.058,0.912,0.367])
         render_env.set_environment(input_vector=input_vector, water_level = -100)
     else:
+        #Load LLM config
+        with open(config['llm_config_file'], 'r') as f:
+            llm_config = yaml.load(f, Loader=yaml.FullLoader)
+
+        #Initialize the terrain generator (LLM)
+        try:
+            llm = LLMTerrianGenerator(llm_config['horizon'], llm_config['top'], llm_config['bottom'], llm_config['model'], llm_config['temperature'], llm_config['sample'], llm_config["smooth_window"])
+            print('LLM successfully Generated')
+        except:
+            print('ERROR: Could not initialize LLM. Exiting.')
+
         #Use LLM
         env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, mode='llm')
         eval_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, mode='llm')
@@ -187,7 +198,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_file", "-cfg", type=str, required=True)
-    parser.add_argument("--llm_config_file", "-llm_cfg", type=str, required=True)
+    parser.add_argument("--llm_config_file", "-llm_cfg", type=str, default='')
 
     parser.add_argument("--eval_interval", "-ei", type=int, default=10000)
     parser.add_argument("--num_eval_trajectories", "-neval", type=int, default=5)

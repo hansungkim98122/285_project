@@ -37,14 +37,28 @@ python test_env.py
 
 # Run Experiments
 
+Manual
+
 SAC Agent
 ```
-python cs285/scripts/run_sac.py -cfg experiments/sac/parkour.yaml -nvid 1
+python cs285/scripts/run_sac.py -cfg experiments/sac/parkour.yaml -nvid 1 --log_interval 15
 ```
 
 PPO Agent
 ```
-python cs285/scripts/run_ppo.py -cfg experiments/ppo/parkour.yaml -nvid 1
+python cs285/scripts/run_ppo.py -cfg experiments/ppo/parkour.yaml -nvid 1 --log_interval 15
+```
+
+Automatic Curriculum Learning via LLM:
+
+SAC Agent
+```
+python cs285/scripts/run_sac.py -cfg experiments/sac/parkour.yaml -nvid 1 --log_interval 15 --mode llm -llm_cfg experiments/llm_config.yaml
+```
+
+PPO Agent
+```
+python cs285/scripts/run_ppo.py -cfg experiments/ppo/parkour.yaml -nvid 1 --log_interval 15 --mode llm -llm_cfg experiments/llm_config.yaml
 ```
 
 
