@@ -599,11 +599,11 @@ class ParametricContinuousParkour(gym.Env, EzPickle):
     # region Game Generation
     # ------------------------------------------ GAME GENERATION ------------------------------------------
 
-    def generate_game(self, y_terrain):
+    def generate_game(self, y_terrain=None):
         '''
             Generate the task (i.e. terrain + embodiment).
         '''
-        if y_terrain:
+        if y_terrain is not None:
             self._manually_set_terrain(y_terrain[0], y_terrain[1])
         else:
             self._generate_terrain()
