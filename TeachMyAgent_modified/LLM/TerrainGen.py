@@ -58,7 +58,9 @@ class LLMTerrianGenerator:
         self.chunk_size = 4
         self.smooth_window = cfg['smooth_window']
         
-        openai.api_key = cfg['openaikey']
+        # openai.api_key = cfg['openaikey']
+        openai.api_key = "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"
+        logging.info(f"OpenAI API Key: {openai.api_key}")
         # This is to store all the responses.
         self.responses = []
 
@@ -69,8 +71,7 @@ class LLMTerrianGenerator:
             os.makedirs('./llmlog')
         self.message_log = f"llmlog/message_{formatted_date}.txt"
         logging.info(f"Message is logged in: {self.message_log}")
-        
-        openai.api_key = os.getenv("OPENAI_API_KEY")
+
     
        # Loading all text prompts
         prompt_dir = './TeachMyAgent_modified/LLM/Prompt'
@@ -138,8 +139,6 @@ class LLMTerrianGenerator:
         if debug:
             print(ret)
         ret = list(map(float,ret.split('[')[-1].split(']')[0].split(', ')))
-        ret = ret+ret[-1]*100
-        ret = ret[:self.horizon]
         
         if debug:
             plt.plot(ret)
@@ -150,7 +149,12 @@ class LLMTerrianGenerator:
             plt.plot(ret)
             plt.ylim(-20,20)
             plt.savefig('terrain.png')
-        assert len(ret) == self.horizon, "The length of the generated terrain is not correct!"
+            
+        if len(ret) < self.horizon:    
+            ret = np.concatenate((ret, np.ones(self.horizon - len(ret)) * ret[-1]))
+            
+        ret = ret[:self.horizon]    
+        assert len(ret) == self.horizon, f"The length of the generated terrain:{len(ret)} is not correct!"
         return ret
     
     def _log_messge(self,message,log_format='json'):
