@@ -40,6 +40,7 @@ class PPO(nn.Module):
         temperature: float = 0.0,
         backup_entropy: bool = True,
         eps_clip: float = 0.2,
+        max_grad_norm: float = 0.5,
     ):
         super().__init__()
 
@@ -94,6 +95,7 @@ class PPO(nn.Module):
         self.soft_target_update_rate = soft_target_update_rate
         self.backup_entropy = backup_entropy
         self.eps_clip = eps_clip
+        self.max_grad_norm = max_grad_norm
 
         self.critic_loss = nn.MSELoss()
 
@@ -220,6 +222,10 @@ class PPO(nn.Module):
 
         self.critic_optimizer.zero_grad()
         loss.backward()
+        
+        #Clip gradients
+        nn.utils.clip_grad_norm_(self.critics.parameters(), self.max_grad_norm)
+
         self.critic_optimizer.step()
 
         return {
@@ -284,6 +290,9 @@ class PPO(nn.Module):
 
         self.actor_optimizer.zero_grad()
         loss.backward()
+
+        # Clip gradients
+        nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_grad_norm)
         self.actor_optimizer.step()
 
         return {"actor_loss": loss.item(), "entropy": entropy.item()}

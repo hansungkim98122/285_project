@@ -4,24 +4,25 @@ exp_name: ppo_parkour
 ep_len: 2000
 
 num_critic_networks: 2
+training_freq: 1
 # target_critic_backup_type: min
 
 total_steps: 1000000
 random_steps: 5000
 training_starts: 10000
 
-batch_size: 256
-replay_buffer_capacity: 1000000
+batch_size: 1024
+replay_buffer_capacity: 2000000
 
 hidden_size: 256
 num_layers: 3
 
 discount: 0.99
 use_soft_target_update: true
-soft_target_update_rate: 0.005
+soft_target_update_rate: 0.995
 
 actor_gradient_type: reinforce
 num_critic_updates: 1
 
 use_entropy_bonus: true
-temperature: 0.05
+temperature: 0.005

@@ -39,12 +39,12 @@ python test_env.py
 
 SAC Agent
 ```
-python cs285/scripts/run_sac.py -cfg experiments/sac/parkour.yaml
+python cs285/scripts/run_sac.py -cfg experiments/sac/parkour.yaml -nvid 1
 ```
 
 PPO Agent
 ```
-python cs285/scripts/run_ppo.py -cfg experiments/ppo/parkour.yaml
+python cs285/scripts/run_ppo.py -cfg experiments/ppo/parkour.yaml -nvid 1
 ```
 
 

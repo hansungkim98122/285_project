@@ -20,8 +20,8 @@ def ppo_config(
     exp_name: Optional[str] = None,
     hidden_size: int = 128,
     num_layers: int = 3,
-    actor_learning_rate: float = 3e-4,
-    critic_learning_rate: float = 3e-4,
+    actor_learning_rate: float = 1e-3,
+    critic_learning_rate: float = 1e-3,
     total_steps: int = 1000000,
     random_steps: int = 5000,
     training_starts: int = 10000,
@@ -46,6 +46,8 @@ def ppo_config(
     actor_fixed_std: Optional[float] = None,
     use_tanh: bool = True,
     eps_clip: float = 0.2,
+    max_grad_norm: float = 0.5,
+    training_freq: int = 1,
 ):
     def make_critic(observation_shape: Tuple[int, ...], action_dim: int) -> nn.Module:
         return StateActionCritic(
@@ -158,6 +160,8 @@ def ppo_config(
         "random_steps": random_steps,
         "training_starts": training_starts,
         "ep_len": ep_len,
+        "max_grad_norm": max_grad_norm,
+        "training_freq": training_freq,
         "batch_size": batch_size,
         "make_env": make_env,
     }

@@ -70,7 +70,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     )
 
     replay_buffer = ReplayBuffer(config["replay_buffer_capacity"])
-
+    train_freq = config['training_freq']
     observation = env.reset()
 
     for step in tqdm.trange(config["total_steps"], dynamic_ncols=True):
@@ -99,10 +99,11 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
 
         # Train the agent
         if step >= config["training_starts"]:
-            # TODO(student): Sample a batch of config["batch_size"] transitions from the replay buffer
-            batch = replay_buffer.sample(config['batch_size'])
             
-            update_info = agent.update(ptu.from_numpy(batch['observations']),ptu.from_numpy(batch['actions']),ptu.from_numpy(batch['rewards']),ptu.from_numpy(batch['next_observations']),ptu.from_numpy(batch['dones']),step)
+            for _ in range(train_freq):
+                batch = replay_buffer.sample(config['batch_size'])
+                
+                update_info = agent.update(ptu.from_numpy(batch['observations']),ptu.from_numpy(batch['actions']),ptu.from_numpy(batch['rewards']),ptu.from_numpy(batch['next_observations']),ptu.from_numpy(batch['dones']),step)
 
             # Logging
             update_info["actor_lr"] = agent.actor_lr_scheduler.get_last_lr()[0]
@@ -159,8 +160,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_file", "-cfg", type=str, required=True)
 
-    parser.add_argument("--eval_interval", "-ei", type=int, default=5000)
-    parser.add_argument("--num_eval_trajectories", "-neval", type=int, default=10)
+    parser.add_argument("--eval_interval", "-ei", type=int, default=10000)
+    parser.add_argument("--num_eval_trajectories", "-neval", type=int, default=5)
     parser.add_argument("--num_render_trajectories", "-nvid", type=int, default=0)
 
     parser.add_argument("--seed", type=int, default=1)
