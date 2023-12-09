@@ -148,7 +148,7 @@ class ParametricContinuousParkour(gym.Env, EzPickle):
     }
 
     def __init__(self, agent_body_type, CPPN_weights_path=None, input_CPPN_dim=3, terrain_cppn_scale=10,
-                 ceiling_offset=200, ceiling_clip_offset=0, lidars_type='full', water_clip=20, movable_creepers=False,
+                 ceiling_offset=200, ceiling_clip_offset=0, lidars_type='full', water_clip=20, movable_creepers=False, mode ='manual',
                  **walker_args):
         '''
             Creates a Parkour environment with an embodiment.
@@ -185,6 +185,7 @@ class ParametricContinuousParkour(gym.Env, EzPickle):
         self.contact_listener = ContactDetector(self)
         self.world = Box2D.b2World(contactListener=self.contact_listener)
         self.movable_creepers = movable_creepers
+        self.mode = mode
 
         # Create agent
         body_type = BodiesEnum.get_body_type(agent_body_type)
@@ -270,6 +271,14 @@ class ParametricContinuousParkour(gym.Env, EzPickle):
                                     self.ceiling_offset*self.TERRAIN_CPPN_SCALE,
                                     self.ceiling_clip_offset*self.TERRAIN_CPPN_SCALE)
 
+    def set_terrain(self,y_terrain,water_level=-100,creepers_width=None,creepers_height=None,creepers_spacing=0.1):
+        self.y_terrain = y_terrain
+        self.water_level = water_level.item() if isinstance(water_level, np.float32) else water_level
+        self.water_level = max(0.01, self.water_level)
+        self.creepers_width = creepers_width if creepers_width is not None else creepers_width
+        self.creepers_height = creepers_height if creepers_height is not None else creepers_height
+        self.creepers_spacing = max(0.01, creepers_spacing)
+
     def _destroy(self):
         # if not self.terrain: return
         for t in self.terrain:
@@ -278,7 +287,7 @@ class ParametricContinuousParkour(gym.Env, EzPickle):
 
         self.agent_body.destroy(self.world)
 
-    def reset(self, y_terrain=None):
+    def reset(self):
         self.world.contactListener = None
         self.contact_listener.Reset()
         self._destroy()
@@ -290,8 +299,10 @@ class ParametricContinuousParkour(gym.Env, EzPickle):
         self.water_y = self.GROUND_LIMIT
         self.nb_steps_outside_water = 0
         self.nb_steps_under_water = 0
-
-        self.generate_game(y_terrain)
+        if self.mode == 'llm':
+            self.generate_game(self.y_terrain)
+        else:
+            self.generate_game([])
 
         self.drawlist = self.terrain + self.agent_body.get_elements_to_render()
 

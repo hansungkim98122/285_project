@@ -9,7 +9,7 @@ import cs285.env_configs
 import os
 import sys
 sys.path.append('/'.join(os.getcwd().split('/')[:-2]) + '/TeachMyAgent_modified/')
-import LLM.TerrainGen
+from LLM.TerrainGen import LLMTerrianGenerator
 import time
 
 import gym
@@ -34,19 +34,44 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     torch.manual_seed(args.seed)
     ptu.init_gpu(use_gpu=not args.no_gpu, gpu_id=args.which_gpu)
 
+    with open(config['llm_config_file'], 'r') as f:
+        llm_config = yaml.load(f, Loader=yaml.FullLoader)
+
+    #Initialize the terrain generator (LLM)
+    try:
+        llm = LLMTerrianGenerator(llm_config['horizon'], llm_config['top'], llm_config['bottom'], llm_config['model'], llm_config['temperature'], llm_config['sample'], llm_config["smooth_window"])
+        print('LLM successfully Generated')
+    except:
+        print('ERROR: Could not initialize LLM. Exiting.')
+
     # make the gym environment
-    env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True)
-    eval_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True)
-    render_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True)
+    if config["mode"] == 'manual':
+        env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True)
+        eval_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True)
+        render_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True)
 
-    input_vector = np.array([-0.058,0.912,0.367])
-    env.set_environment(input_vector=input_vector, water_level = -100)
+        input_vector = np.array([-0.058,0.912,0.367])
+        env.set_environment(input_vector=input_vector, water_level = -100)
 
-    input_vector = np.array([-0.058,0.912,0.367])
-    eval_env.set_environment(input_vector=input_vector, water_level = -100)
+        input_vector = np.array([-0.058,0.912,0.367])
+        eval_env.set_environment(input_vector=input_vector, water_level = -100)
 
-    input_vector = np.array([-0.058,0.912,0.367])
-    render_env.set_environment(input_vector=input_vector, water_level = -100)
+        input_vector = np.array([-0.058,0.912,0.367])
+        render_env.set_environment(input_vector=input_vector, water_level = -100)
+    else:
+        #Use LLM
+        env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, mode='llm')
+        eval_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, mode='llm')
+        render_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, mode='llm')
+
+        ground_y = llm.init_generate(debug=True)
+        y_terrain = np.vstack((ground_y,ground_y + 100)) #100 is the hardcoded offset for the ceiling
+
+        assert y_terrain.shape == (2,200)
+
+        env.set_terrain(y_terrain, water_level = -100)
+        eval_env.set_terrain(y_terrain, water_level = -100)
+        render_env.set_terrain(y_terrain, water_level = -100)
 
     ep_len = config["ep_len"] or env.spec.max_episode_steps
     batch_size = config["batch_size"] or batch_size

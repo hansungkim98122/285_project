@@ -1,0 +1,7 @@
+    horizon: 200
+    top: 20
+    bottom: -20
+    model: "gpt-3.5-turbo"
+    temperature: 0.5
+    sample: 4
+    smooth_window: 25
