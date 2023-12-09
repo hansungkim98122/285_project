@@ -38,14 +38,14 @@ def load_tensorboard_logs(path):
 class LLMTerrianGenerator:
     
     def __init__(self, cfg: dict):
-                 horizon: int, 
-                 top, 
-                 bottom, 
-                 model: str = "gpt-3.5-turbo", 
-                 temperature: float = 0.5,
-                 sample: int = 4,
-                 smooth_window: int = 1
-                 ):
+                #  horizon: int, 
+                #  top, 
+                #  bottom, 
+                #  model: str = "gpt-3.5-turbo", 
+                #  temperature: float = 0.5,
+                #  sample: int = 4,
+                #  smooth_window: int = 1
+                 
         self.logger = logging.getLogger(__name__)
         
         self.logger.info("LLMTerrianGenerator initializing...")
