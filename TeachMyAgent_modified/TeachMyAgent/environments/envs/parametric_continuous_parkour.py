@@ -302,7 +302,7 @@ class ParametricContinuousParkour(gym.Env, EzPickle):
         if self.mode == 'llm':
             self.generate_game(self.y_terrain)
         else:
-            self.generate_game([])
+            self.generate_game()
 
         self.drawlist = self.terrain + self.agent_body.get_elements_to_render()
 
