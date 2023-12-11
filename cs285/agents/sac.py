@@ -103,11 +103,15 @@ class SACAgent(Agent):
         target_Q1, target_Q2 = self.critic_target(next_obs, next_action)
         target_V = torch.min(target_Q1,
                              target_Q2) - self.alpha.detach() * log_prob
-        target_Q = reward + (1 - done) * (self.discount * target_V)
+        
+        target_Q = reward[:,None] + (1.0 - 1.0*done[:,None]) * (self.discount * target_V)
         target_Q = target_Q.detach()
 
         # get current Q estimates
         current_Q1, current_Q2 = self.critic(obs, action)
+
+        assert target_Q.shape == current_Q1.shape 
+
         critic_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(
             current_Q2, target_Q)
 

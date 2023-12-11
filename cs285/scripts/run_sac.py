@@ -112,7 +112,6 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         # print(f'step {step} action: {action}')
         # Step the environment and add the data to the replay buffer
         next_observation, reward, done, info = env.step(action)
-        print(reward)
         replay_buffer.insert(
             observation=observation,
             action=action,
