@@ -2,7 +2,7 @@ import os
 import time
 import yaml
 
-from cs285.agents.soft_actor_critic import SoftActorCritic
+from cs285.agents.sac import SACAgent
 from cs285.infrastructure.replay_buffer import ReplayBuffer
 import cs285.env_configs
 
@@ -86,14 +86,15 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     ob_shape = env.observation_space.shape
     ac_dim = env.action_space.shape[0]
 
-    # simulation timestep, will be used for video saving
-    # if "model" in dir(env):
-    #     fps = 1 / env.model.opt.timestep
-    # else:
-    #     fps = env.env.metadata["render_fps"]
+    config["agent_kwargs"]['action_range'] = [
+        float(env.action_space.low.min()),
+        float(env.action_space.high.max())
+    ]
+    config["agent_kwargs"]['device'] = ptu.device
+    
     fps = 20
     # initialize agent
-    agent = SoftActorCritic(
+    agent = SACAgent(
         ob_shape,
         ac_dim,
         **config["agent_kwargs"],
@@ -112,7 +113,6 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         # print(f'step {step} action: {action}')
         # Step the environment and add the data to the replay buffer
         next_observation, reward, done, info = env.step(action)
-        print(reward)
         replay_buffer.insert(
             observation=observation,
             action=action,

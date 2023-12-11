@@ -220,6 +220,7 @@ class SoftActorCritic(nn.Module):
 
         self.critic_optimizer.zero_grad()
         loss.backward()
+        nn.utils.clip_grad_norm_(self.critics.parameters(), self.max_grad_norm)
         self.critic_optimizer.step()
 
         return {
@@ -238,10 +239,10 @@ class SoftActorCritic(nn.Module):
         action = action_distribution.rsample()
         return -action_distribution.log_prob(action)
 
-    def actor_loss_reinforce(self, obs: torch.Tensor):
+    def actor_loss(self, obs: torch.Tensor):
         batch_size = obs.shape[0]
 
-        # TODO(student): Generate an action distribution
+        # TODO(student): Generate an action distribution (pi)
         action_distribution: torch.distributions.Distribution = self.actor(obs)
 
         with torch.no_grad():
@@ -253,8 +254,7 @@ class SoftActorCritic(nn.Module):
                 self.action_dim,
             ), action.shape
 
-            # TODO(student): Compute Q-values for the current state-action pair
-            
+            # TODO(student): Compute Q-values for the current state-action pair Q^pi(s,a)
             q_values = self.critic(obs.repeat(self.num_actor_samples,1,1),action)
             assert q_values.shape == (
                 self.num_critic_networks,
@@ -262,31 +262,9 @@ class SoftActorCritic(nn.Module):
                 batch_size,
             ), q_values.shape
 
-            # Our best guess of the Q-values is the mean of the ensemble
+            # Our best guess of the Q-values is the mean of the ensemble:Q^pi(s,a)
             q_values = torch.mean(q_values, axis=0)
-            advantage = q_values
 
-        # Do REINFORCE: calculate log-probs and use the Q-values
-        # TODO(student)
-        log_probs = action_distribution.log_prob(action)
-        loss = -(log_probs*advantage).mean()
-
-        return loss, torch.mean(self.entropy(action_distribution))
-
-    def actor_loss_reparametrize(self, obs: torch.Tensor):
-        batch_size = obs.shape[0]
-
-        # Sample from the actor
-        action_distribution: torch.distributions.Distribution = self.actor(obs)
-
-        # TODO(student): Sample actions
-        # Note: Think about whether to use .rsample() or .sample() here...
-        action = action_distribution.rsample()
-
-        # TODO(student): Compute Q-values for the sampled state-action pair
-        q_values = self.critic(obs,action)
-
-        # TODO(student): Compute the actor loss
         loss = -torch.mean(q_values)
 
         return loss, torch.mean(self.entropy(action_distribution))
@@ -296,10 +274,7 @@ class SoftActorCritic(nn.Module):
         Update the actor by one gradient step using either REPARAMETRIZE or REINFORCE.
         """
 
-        if self.actor_gradient_type == "reparametrize":
-            loss, entropy = self.actor_loss_reparametrize(obs)
-        elif self.actor_gradient_type == "reinforce":
-            loss, entropy = self.actor_loss_reinforce(obs)
+        loss, entropy = self.actor_loss(obs)
 
         # Add entropy if necessary
         if self.use_entropy_bonus:
@@ -307,6 +282,7 @@ class SoftActorCritic(nn.Module):
 
         self.actor_optimizer.zero_grad()
         loss.backward()
+        nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_grad_norm)
         self.actor_optimizer.step()
 
         return {"actor_loss": loss.item(), "entropy": entropy.item()}

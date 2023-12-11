@@ -9,10 +9,14 @@ def make_config(config_file: str) -> dict:
     config_kwargs = {}
     with open(config_file, "r") as f:
         config_kwargs = yaml.load(f, Loader=yaml.SafeLoader)
+    print(config_kwargs)
+    if  "agent" in config_kwargs.keys():
+        base_config_name = config_kwargs["agent"].pop("base_config")
+        return cs285.env_configs.configs[base_config_name](**config_kwargs["agent"])
+    else:
+        base_config_name = config_kwargs.pop("base_config")
 
-    base_config_name = config_kwargs.pop("base_config")
-    print(cs285.env_configs.configs)
-    return cs285.env_configs.configs[base_config_name](**config_kwargs)
+        return cs285.env_configs.configs[base_config_name](**config_kwargs)
 
 def make_logger(logdir_prefix: str, config: dict) -> Logger:
     data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../data")

@@ -39,8 +39,15 @@ python test_env.py
 
 Manual
 
+New SAC Agent:
+
+```
+python cs285/scripts/run_sac_new.py -cfg experiments/sac_new/parkour.yaml --log_interval 15
+```
+
 SAC Agent
 ```
+python cs285/scripts/run_sac.py -cfg experiments/sac/parkour.yaml --log_interval 15
 python cs285/scripts/run_sac.py -cfg experiments/sac/parkour.yaml -nvid 1 --log_interval 15
 ```
 

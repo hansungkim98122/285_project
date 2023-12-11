@@ -35,7 +35,10 @@ def sample_trajectory(
             )
 
         # TODO use the most recent ob to decide what to do
-        ac = policy.get_action(ob)
+        try:
+            ac = policy.get_action(ob)
+        except:
+            ac = policy.act(ob)
 
         # TODO: take that action and get reward and next ob
         next_ob, rew, done, info = env.step(ac)
