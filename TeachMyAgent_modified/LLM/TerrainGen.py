@@ -74,24 +74,50 @@ class LLMTerrianGenerator:
 
     
        # Loading all text prompts
-        prompt_dir = './TeachMyAgent_modified/LLM/Prompt'
+        prompt_dir = './Prompt'
         self.initial_system = file_to_string(f'{prompt_dir}/initial_system.txt')
-        terrain_example = file_to_string(f'{prompt_dir}/terrain_example.txt')
-        self.code_output_tip = file_to_string(f'{prompt_dir}/code_output_tip.txt')+terrain_example
+        
+        self.code_output_tip = file_to_string(f'{prompt_dir}/code_output_tip.txt')
         self.code_feedback = file_to_string(f'{prompt_dir}/code_feedback.txt')
         self.initial_user = file_to_string(f'{prompt_dir}/initial_user.txt')
         # reward_signature = file_to_string(f'{prompt_dir}/reward_signature.txt')
         self.policy_feedback = file_to_string(f'{prompt_dir}/policy_feedback.txt')
         self.execution_error_feedback = file_to_string(f'{prompt_dir}/execution_error_feedback.txt')
-
-        self.initial_system = self.initial_system.format(terrain_horizon_length=self.horizon,terrain_bottom=self.bottom,terrain_top=self.top) + self.code_output_tip
+        terrain_example = file_to_string(f'{prompt_dir}/terrain_example.txt')
+        
+        
+        self.initial_system = self.initial_system.format(terrain_horizon_length=self.horizon,terrain_bottom=self.bottom,terrain_top=self.top) + self.code_output_tip + terrain_example
         
         self.messages = [{"role": "system", "content": self.initial_system}, {"role": "user", "content": self.initial_user}]
 
         self.logger.info("LLMTerrianGenerator initialized")
+
+    def _log_messge(self,message,log_format='json'):
+        logging.info(f"Logging Message...")
+        if log_format == 'str':
+            assert isinstance(message,str), "message must be a string!"
+            with open(self.message_log, 'a') as file:
+                file.write(message)
+                file.write('\n')
+                
+        elif log_format == 'json':
+            assert isinstance(message,dict), "message must be a dict!"
+            with open(self.message_log, 'a') as file:
+                json.dump(message, file, indent=4)
+        else:
+            raise NotImplementedError(f"log_format {log_format} not implemented!")
         
-        print(self.initial_system)
-        
+    def init_generate(self,debug:bool = False):
+        logging.info("Generating initial terrain...")
+        message = self._callOpenAI(self.messages,debug)
+        return message
+
+    def iter_generate(self,tensorboard_logdir: str = None,debug:bool = False):
+        logging.info("Generating terrain with updated metric...")
+        self._update_message(tensorboard_logdir)
+        message = self._callOpenAI(self.messages,debug) 
+        return message
+
     def _callOpenAI(self,messages,debug:bool = False):
     
         response_cur = None
@@ -101,7 +127,7 @@ class LLMTerrianGenerator:
         
         logging.info(f"Generating samples with {self.model}")
         total_samples = 0
-  
+        logging.debug(f"Messages: {messages}")
         for attempt in range(10):
             try:
                 response_cur = openai.ChatCompletion.create(
@@ -116,7 +142,6 @@ class LLMTerrianGenerator:
             except Exception as e:
                 if attempt >= 10:
                     self.chunk_size = max(int(self.chunk_size / 2), 1)
-                    print("Current Chunk Size", self.chunk_size)
                 logging.info(f"Attempt {attempt+1} failed with error: {e}")
                 time.sleep(1)
 
@@ -157,31 +182,6 @@ class LLMTerrianGenerator:
         assert len(ret) == self.horizon, f"The length of the generated terrain:{len(ret)} is not correct!"
         return ret
     
-    def _log_messge(self,message,log_format='json'):
-        logging.info(f"Logging Message...")
-        if log_format == 'str':
-            assert isinstance(message,str), "message must be a string!"
-            with open(self.message_log, 'a') as file:
-                file.write(message)
-                file.write('\n')
-                
-        elif log_format == 'json':
-            assert isinstance(message,dict), "message must be a dict!"
-            with open(self.message_log, 'a') as file:
-                json.dump(message, file, indent=4)
-        else:
-            raise NotImplementedError(f"log_format {log_format} not implemented!")
-        
-    def init_generate(self,debug:bool = False):
-        logging.info("Generating initial terrain...")
-        message = self._callOpenAI(self.messages,debug)
-        return message
-
-    def iter_generate(self,tensorboard_logdir: str = None,debug:bool = False):
-        logging.info("Generating terrain with updated metric...")
-        self._update_message(tensorboard_logdir)
-        message = self._callOpenAI(self.messages,debug) 
-        return message
     
     def _update_message(self,tensorboard_logdir: str = None):
 
@@ -191,46 +191,30 @@ class LLMTerrianGenerator:
         # contents = []
         # successes = []
         # reward_correlations = []
-
+        content = ''
         tensorboard_logs = load_tensorboard_logs(tensorboard_logdir)
+        logging.info(f"Reading tensorboard logs from {tensorboard_logdir}")
         max_iterations = np.array(tensorboard_logs['critic_loss']).shape[0]
         epoch_freq = max(int(max_iterations // 10), 1)
 
         content += self.policy_feedback.format(epoch_freq=epoch_freq)
-
-        # # Compute Correlation between Human-Engineered and GPT Rewards
-        # if "gt_reward" in tensorboard_logs and "gpt_reward" in tensorboard_logs:
-        #     gt_reward = np.array(tensorboard_logs["gt_reward"])
-        #     gpt_reward = np.array(tensorboard_logs["gpt_reward"])
-        #     reward_correlation = np.corrcoef(gt_reward, gpt_reward)[0, 1]
-        #     reward_correlations.append(reward_correlation)
-
+        logging.info(f"Epoch Frequency: {epoch_freq}")
+        logging.info(f"content: {content}")
+        logging.info(tensorboard_logs.keys())
         # Add reward components log to the feedback
         for metric in tensorboard_logs:
             if "/" not in metric:
-                metric_cur = ['{:.2f}'.format(x) for x in tensorboard_logs[metric][::epoch_freq]]
+                metric_cur = [round(x,2) for x in tensorboard_logs[metric][::epoch_freq]]
+                metric_cur_min = min(tensorboard_logs[metric])
                 metric_cur_max = max(tensorboard_logs[metric])
-                metric_cur_mean = sum(tensorboard_logs[metric]) / len(tensorboard_logs[metric])
-                # if "consecutive_successes" == metric:
-                #     successes.append(metric_cur_max)
-                # metric_cur_min = min(tensorboard_logs[metric])
-                # if metric != "gt_reward" and metric != "gpt_reward":
-                #     if metric != "consecutive_successes":
-                #         metric_name = metric 
-                #     else:
-                #         metric_name = "task_score"
-                #     content += f"{metric_name}: {metric_cur}, Max: {metric_cur_max:.2f}, Mean: {metric_cur_mean:.2f}, Min: {metric_cur_min:.2f} \n"                    
-                # else:
-                #     # Provide ground-truth score when success rate not applicable
-                #     if "consecutive_successes" not in tensorboard_logs:
-                #         content += f"ground-truth score: {metric_cur}, Max: {metric_cur_max:.2f}, Mean: {metric_cur_mean:.2f}, Min: {metric_cur_min:.2f} \n"                    
+                metric_cur_mean = sum(tensorboard_logs[metric]) / len(tensorboard_logs[metric])           
                 metric_name = metric
                 content += f"{metric_name}: {metric_cur}, Max: {metric_cur_max:.2f}, Mean: {metric_cur_mean:.2f}, Min: {metric_cur_min:.2f} \n"                    
 
         # code_feedbacks.append(self.code_feedback)
         content += self.code_feedback  
         content += self.code_output_tip
-
+        logging.info(f"context: {content}")
         if len(self.messages) == 2:
             self.messages += [{"role": "assistant", "content": self.responses[0]["message"]["content"]}]
             self.messages += [{"role": "user", "content": content}]
@@ -240,7 +224,7 @@ class LLMTerrianGenerator:
             self.messages[-1] = {"role": "user", "content": content}
 
         logging.info("Message Updated with the newest metric!")
-    
+
     @staticmethod
     def smooth_array(arr, window_size:int):
         if window_size < 1:
@@ -258,15 +242,10 @@ class LLMTerrianGenerator:
 
 
 if __name__ == '__main__':
-    horizon = 200
-    top = 20
-    bottom = -20
-    model = "gpt-3.5-turbo"
-    temperature = 0.5
-    sample = 4
-    smooth_window = 25
+    cfg = {'horizon': 200, 'top': 20, 'bottom': -20, 'model': 'gpt-3.5-turbo', 'temperature': 0.5, 'sample': 4, 'smooth_window': 25}
 
-    llm = LLMTerrianGenerator(horizon, top, bottom, model, temperature, sample, smooth_window)
+    llm = LLMTerrianGenerator(cfg)
     terrain = llm.init_generate(debug=True)
+    tensorboard_logdir = '../../cs285/data/sac_parkour_parametric-continuous-parkour-v0_reparametrize_s256_l3_alr0.001_clr0.001_b1024_d0.99_t0.005_stu0.995_08-12-2023_14-24-42'
+    llm.iter_generate(tensorboard_logdir = tensorboard_logdir,debug=True)
 
-    print(terrain)
