@@ -1,0 +1,3 @@
+Below are some constraints that you should follow when return the values.
+return your value in a json format like the following example:
+{"gravity":0.0,"wind_power":0.0,"turbulence_power":0.0}
