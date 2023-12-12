@@ -19,7 +19,6 @@ campain_logs/
 *.py[cod]
 *$py.class
 *.pyc 
-__pycache__/*
 
 # C extensions
 *.so
@@ -121,3 +120,14 @@ llmlog/
 *.png
 
 data/
+
+.DS_Store
+cs285.egg-info/*
+cs285/.DS_Store
+cs285/agents/__pycache__/*
+cs285/data/*
+cs285/env_configs/__pycache__/*
+cs285/infrastructure/__pycache__/*
+cs285/networks/__pycache__/*
+cs285/scripts/__pycache__/*
+data/*
