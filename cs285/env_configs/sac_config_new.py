@@ -22,7 +22,7 @@ def sac_config_new(
     num_layers: int = 3,
 
     alpha_lr: float = 1e-3,
-    init_temperature: float = 0.5,
+    init_temperature: float = 0.2,
 
     total_steps: int = 1000000,
     random_steps: int = 5000,

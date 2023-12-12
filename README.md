@@ -39,19 +39,20 @@ python test_env.py
 
 Manual
 
-New SAC Agent:
+New SAC Agent (sac.py):
 
 ```
 python cs285/scripts/run_sac_new.py -cfg experiments/sac_new/parkour.yaml --log_interval 15
+python cs285/scripts/run_sac_new.py -cfg experiments/sac_new/parkour.yaml --log_interval 15
 ```
 
-SAC Agent
+SAC Agent (soft_actor_critic.py)
 ```
 python cs285/scripts/run_sac.py -cfg experiments/sac/parkour.yaml --log_interval 15
 python cs285/scripts/run_sac.py -cfg experiments/sac/parkour.yaml -nvid 1 --log_interval 15
 ```
 
-PPO Agent
+PPO Agent (ppo_agent.py)
 ```
 python cs285/scripts/run_ppo.py -cfg experiments/ppo/parkour.yaml -nvid 1 --log_interval 15
 ```

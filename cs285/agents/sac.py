@@ -101,9 +101,11 @@ class SACAgent(Agent):
         next_action = dist.rsample()
         log_prob = dist.log_prob(next_action).sum(-1, keepdim=True)
         target_Q1, target_Q2 = self.critic_target(next_obs, next_action)
+
+        assert target_Q1.shape == log_prob.shape
+
         target_V = torch.min(target_Q1,
                              target_Q2) - self.alpha.detach() * log_prob
-        
         target_Q = reward[:,None] + (1.0 - 1.0*done[:,None]) * (self.discount * target_V)
         target_Q = target_Q.detach()
 
@@ -135,6 +137,9 @@ class SACAgent(Agent):
         actor_Q1, actor_Q2 = self.critic(obs, action)
 
         actor_Q = torch.min(actor_Q1, actor_Q2)
+
+        assert actor_Q.shape == log_prob.shape
+        
         actor_loss = (self.alpha.detach() * log_prob - actor_Q).mean()
 
         # logger.log('train_actor/loss', actor_loss, step)

@@ -36,9 +36,9 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
 
     # make the gym environment
     if args.mode == 'manual':
-        env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True)
-        eval_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True)
-        render_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True)
+        env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, max_steps = config["ep_len"])
+        eval_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, max_steps = config["ep_len"])
+        render_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, max_steps = config["ep_len"])
 
         input_vector = np.array([-0.058,0.912,0.367])
         env.set_environment(input_vector=input_vector, water_level = -100)
@@ -62,9 +62,9 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
             print('ERROR: Could not initialize LLM. Exiting.')
 
         #Use LLM
-        env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, mode='llm')
-        eval_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, mode='llm')
-        render_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, mode='llm')
+        env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, mode='llm', max_steps = config["ep_len"])
+        eval_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, mode='llm', max_steps = config["ep_len"])
+        render_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, mode='llm', max_steps = config["ep_len"])
 
         ground_y = llm.init_generate(debug=True) #(200,)
         y_terrain = np.vstack((ground_y,ground_y + 100)) #100 is the hardcoded offset for the ceiling
@@ -77,7 +77,6 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
 
     ep_len = config["ep_len"] or env.spec.max_episode_steps
     batch_size = config["batch_size"] or batch_size
-
     discrete = isinstance(env.action_space, gym.spaces.Discrete)
     assert (
         not discrete
@@ -108,9 +107,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         if step < config["random_steps"]:
             action = env.action_space.sample()
         else:
-            # TODO(student): Select an action
             action = agent.act(observation)
-        # print(f'step {step} action: {action}')
         # Step the environment and add the data to the replay buffer
         next_observation, reward, done, info = env.step(action)
         replay_buffer.insert(
@@ -125,9 +122,15 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
             logger.log_scalar(info["episode"]["r"], "train_return", step)
             logger.log_scalar(info["episode"]["l"], "train_ep_len", step)
             observation = env.reset()
+
+            #training logging for debugging
+            # train_return = info["episode"]["r"]
+            # train_ep_len = info["episode"]["l"]
+            # print(f'Step: {step} Train return: {train_return}, ep len:{train_ep_len}')
         else:
             observation = next_observation
-
+        
+        
         # Train the agent
         if step >= config["training_starts"]:
             
@@ -159,7 +162,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
 
             logger.log_scalar(np.mean(returns), "eval_return", step)
             logger.log_scalar(np.mean(ep_lens), "eval_ep_len", step)
-
+            print(f'Step: {step} Eval return: {np.mean(returns)}')
             if len(returns) > 1:
                 logger.log_scalar(np.std(returns), "eval/return_std", step)
                 logger.log_scalar(np.max(returns), "eval/return_max", step)

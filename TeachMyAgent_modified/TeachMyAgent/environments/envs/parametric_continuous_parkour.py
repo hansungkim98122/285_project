@@ -58,6 +58,7 @@ class ContactDetector(WaterContactDetector, ClimbingContactDetector):
                             not (other_body.userData.object_type == CustomUserDataObjectTypes.GRIP_TERRAIN and
                                          self.env.agent_body.body_type == BodyTypesEnum.CLIMBER):
                         self.env.critical_contact = True
+                        
 
     def EndContact(self, contact):
         '''
@@ -148,7 +149,7 @@ class ParametricContinuousParkour(gym.Env, EzPickle):
     }
 
     def __init__(self, agent_body_type, CPPN_weights_path=None, input_CPPN_dim=3, terrain_cppn_scale=10,
-                 ceiling_offset=200, ceiling_clip_offset=0, lidars_type='full', water_clip=20, movable_creepers=False, mode ='manual',
+                 ceiling_offset=200, ceiling_clip_offset=0, lidars_type='full', water_clip=20, movable_creepers=False, mode ='manual',max_steps=2000,
                  **walker_args):
         '''
             Creates a Parkour environment with an embodiment.
@@ -193,7 +194,7 @@ class ParametricContinuousParkour(gym.Env, EzPickle):
             self.agent_body = BodiesEnum[agent_body_type].value(SCALE, density=WATER_DENSITY, **walker_args)
         elif body_type == BodyTypesEnum.WALKER:
             self.agent_body = BodiesEnum[agent_body_type].value(SCALE, **walker_args,
-                                                                reset_on_hull_critical_contact=False)
+                                                                reset_on_hull_critical_contact=True)
         else:
             self.agent_body = BodiesEnum[agent_body_type].value(SCALE, **walker_args)
 
@@ -203,6 +204,8 @@ class ParametricContinuousParkour(gym.Env, EzPickle):
         self.climbing_dynamics = ClimbingDynamics()
         self.prev_shaping = None
         self.episodic_reward = 0
+        self.ep_step = 0
+        self.max_steps = max_steps
 
         self.TERRAIN_STARTPAD = INITIAL_TERRAIN_STARTPAD if \
             self.agent_body.AGENT_WIDTH / TERRAIN_STEP + 5 <= INITIAL_TERRAIN_STARTPAD else \
@@ -334,6 +337,7 @@ class ParametricContinuousParkour(gym.Env, EzPickle):
         self.nb_steps_outside_water = 0
         self.nb_steps_under_water = 0
         self.episodic_reward = 0
+        self.ep_step = 0
         return initial_state
 
     def step(self, action):
@@ -440,9 +444,11 @@ class ParametricContinuousParkour(gym.Env, EzPickle):
             done = True
         if pos[0] > (TERRAIN_LENGTH + self.TERRAIN_STARTPAD - TERRAIN_END) * TERRAIN_STEP:
             done = True
+        if self.ep_step >= self.max_steps:
+            done = True
         self.episodic_reward += reward
-
-        return np.array(state), reward, done, {"success": self.episodic_reward > 230}
+        self.ep_step += 1
+        return np.array(state), reward, done, {"success": self.episodic_reward > 230, "episode": {"r":self.episodic_reward, "l":self.ep_step}}
 
     def close(self):
         self.world.contactListener = None
