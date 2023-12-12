@@ -74,7 +74,7 @@ class LLMLunarEnvGenerator:
 
     
        # Loading all text prompts
-        prompt_dir = './Prompt'
+        prompt_dir = '.TeachMyAgent_modified/LLM_lunar/Prompt'
         self.initial_system = file_to_string(f'{prompt_dir}/initial_system.txt')
         
         self.code_output_tip = file_to_string(f'{prompt_dir}/code_output_tip.txt')
@@ -83,10 +83,11 @@ class LLMLunarEnvGenerator:
         # reward_signature = file_to_string(f'{prompt_dir}/reward_signature.txt')
         self.policy_feedback = file_to_string(f'{prompt_dir}/policy_feedback.txt')
         self.execution_error_feedback = file_to_string(f'{prompt_dir}/execution_error_feedback.txt')
-        terrain_example = file_to_string(f'{prompt_dir}/terrain_example.txt')
+        # terrain_example = file_to_string(f'{prompt_dir}/terrain_example.txt')
         
         
-        self.initial_system = self.initial_system.format(terrain_horizon_length=self.horizon,terrain_bottom=self.bottom,terrain_top=self.top) + self.code_output_tip + terrain_example
+        self.initial_system += self.code_output_tip 
+        # self.initial_system += terrain_example
         
         self.messages = [{"role": "system", "content": self.initial_system}, {"role": "user", "content": self.initial_user}]
 
@@ -161,26 +162,7 @@ class LLMLunarEnvGenerator:
         self._log_messge(response_cur)
         
         ret = self.responses[0]['message']['content']
-        if debug:
-            print(ret)
-        ret = list(map(float,ret.split('[')[-1].split(']')[0].split(', ')))
-        
-        if debug:
-            plt.plot(ret)
-            plt.ylim(-20,20)
-        ret = LLMTerrianGenerator.smooth_array(ret, self.smooth_window)
-        logging.info(f"The generated terrain is {ret}")
-        if debug:
-            plt.plot(ret)
-            plt.ylim(-20,20)
-            plt.savefig('terrain.png')
-            
-        if len(ret) < self.horizon:    
-            ret = np.concatenate((ret, np.ones(self.horizon - len(ret)) * ret[-1]))
-            
-        ret = ret[:self.horizon]    
-        assert len(ret) == self.horizon, f"The length of the generated terrain:{len(ret)} is not correct!"
-        return ret
+        return eval(ret)
     
     
     def _update_message(self,tensorboard_logdir: str = None):
@@ -239,13 +221,4 @@ class LLMLunarEnvGenerator:
         smoothed_arr = np.convolve(arr, kernel, mode='valid')
 
         return smoothed_arr
-
-
-if __name__ == '__main__':
-    cfg = {'horizon': 200, 'top': 20, 'bottom': -20, 'model': 'gpt-3.5-turbo', 'temperature': 0.5, 'sample': 4, 'smooth_window': 25}
-
-    llm = LLMTerrianGenerator(cfg)
-    terrain = llm.init_generate(debug=True)
-    tensorboard_logdir = '../../cs285/data/sac_parkour_parametric-continuous-parkour-v0_reparametrize_s256_l3_alr0.001_clr0.001_b1024_d0.99_t0.005_stu0.995_08-12-2023_14-24-42'
-    llm.iter_generate(tensorboard_logdir = tensorboard_logdir,debug=True)
 
