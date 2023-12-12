@@ -177,7 +177,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
                     agent,
                     args.num_render_trajectories,
                     ep_len,
-                    render=True,
+                    render=False,
                 )
 
                 logger.log_paths_as_videos(

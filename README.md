@@ -78,3 +78,8 @@ python cs285/scripts/run_dqn.py -cfg experiments/dqn/lunarlander_doubleq.yaml --
 ```
 python cs285/scripts/run_cql.py -cfg experiments/dqn/lunarlander_cql.yaml --log_interval 15
 ```
+
+With LLM:
+```
+python cs285/scripts/run_dqn.py -cfg experiments/dqn/lunarlander_doubleq.yaml --mode llm -llm_cfg experiments/llm_config.yaml -llm_fb 100000 --log_interval 15
+```

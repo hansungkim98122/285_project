@@ -15,7 +15,7 @@ def sample_trajectory(
     env: gym.Env, policy: MLPPolicy, max_length: int, render: bool = False
 ) -> Dict[str, np.ndarray]:
     """Sample a rollout in the environment from a policy."""
-    ob = env.reset()
+    ob, _ = env.reset()
     obs, acs, rewards, next_obs, terminals, image_obs = [], [], [], [], [], []
     steps = 0
 
@@ -35,13 +35,13 @@ def sample_trajectory(
             )
 
         # TODO use the most recent ob to decide what to do
-        try:
-            ac = policy.get_action(ob)
-        except:
-            ac = policy.act(ob)
+        # try:
+        ac = policy.get_action(ob)
+        # except:
+        #     ac = policy.act(ob)
 
         # TODO: take that action and get reward and next ob
-        next_ob, rew, done, info = env.step(ac)
+        next_ob, rew, done, _, info = env.step(ac)
 
         # TODO rollout can end due to done, or due to max_length
         steps += 1

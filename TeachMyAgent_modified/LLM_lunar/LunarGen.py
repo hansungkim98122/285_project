@@ -74,7 +74,7 @@ class LLMLunarEnvGenerator:
 
     
        # Loading all text prompts
-        prompt_dir = '.TeachMyAgent_modified/LLM_lunar/Prompt'
+        prompt_dir = './TeachMyAgent_modified/LLM_lunar/Prompt'
         self.initial_system = file_to_string(f'{prompt_dir}/initial_system.txt')
         
         self.code_output_tip = file_to_string(f'{prompt_dir}/code_output_tip.txt')

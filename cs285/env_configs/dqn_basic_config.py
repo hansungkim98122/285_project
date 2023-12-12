@@ -13,7 +13,7 @@ from cs285.env_configs.schedule import (
     ConstantSchedule,
 )
 import cs285.infrastructure.pytorch_util as ptu
-import TeachMyAgent.environments
+# import TeachMyAgent.environments
 
 def basic_dqn_config(
     env_name: str,

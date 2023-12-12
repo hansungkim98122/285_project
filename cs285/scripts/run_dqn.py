@@ -7,7 +7,7 @@ import cs285.env_configs
 import os
 import sys
 sys.path.append('/'.join(os.getcwd().split('/')[:-2]) + '/TeachMyAgent_modified/')
-from LLM.TerrainGen import LLMTerrianGenerator
+from LLM_lunar.LunarGen import LLMLunarEnvGenerator
 import time
 
 import gym
@@ -34,9 +34,17 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
 
     # make the gym environment
     if args.mode == 'manual':
-        env = config["make_env"]()
-        eval_env = config["make_env"]()
-        render_env = config["make_env"](render=True)
+        '''
+        gravity: float = -10.0,
+        enable_wind: bool = False,
+        wind_power: float = 15.0,
+        turbulence_power: float = 1.5,
+        '''
+        enable_wind = True #Always set to true
+        gravity, wind_power, turbulence = -10.0, 0.0, 0.0
+        env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
+        eval_env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
+        render_env = config["make_env"](render=True,gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
     else:
         #Load LLM config
         with open(args.llm_config_file, 'r') as f:
@@ -44,11 +52,17 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
 
         #Initialize the terrain generator (LLM)
         try:
-            # llm = LLMTerrianGenerator(llm_config['horizon'], llm_config['top'], llm_config['bottom'], llm_config['model'], llm_config['temperature'], llm_config['sample'], llm_config["smooth_window"])
-            llm = LLMTerrianGenerator(llm_config)
+            llm = LLMLunarEnvGenerator(llm_config)
             print('LLM successfully Generated')
         except:
             print('ERROR: Could not initialize LLM. Exiting.')
+        enable_wind = True #Always set to true
+        env_param_dict = llm.init_generate(debug=False)
+        gravity, wind_power, turbulence = env_param_dict['gravity'], env_param_dict['wind_power'], env_param_dict['turbulence_power']
+        env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
+        eval_env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
+        render_env = config["make_env"](render=True,gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
+
     exploration_schedule = config["exploration_schedule"]
     discrete = isinstance(env.action_space, gym.spaces.Discrete)
 
@@ -91,7 +105,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     def reset_env_training():
         nonlocal observation
 
-        observation = env.reset()
+        observation, _ = env.reset()
 
         assert not isinstance(
             observation, tuple
@@ -110,7 +124,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         action = agent.get_action(observation, epsilon=epsilon)
 
         # TODO(student): Step the environment
-        next_observation, reward, done, info = env.step(action)
+        next_observation, reward, done, _, info = env.step(action)
         truncated = info.get("TimeLimit.truncated", False)
 
         terminated = done and not truncated
