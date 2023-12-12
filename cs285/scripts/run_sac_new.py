@@ -102,7 +102,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     replay_buffer = ReplayBuffer(config["replay_buffer_capacity"])
     train_freq = config['training_freq']
     observation = env.reset()
-
+    
     for step in tqdm.trange(config["total_steps"], dynamic_ncols=True):
         if step < config["random_steps"]:
             action = env.action_space.sample()
@@ -187,6 +187,10 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
                     max_videos_to_save=args.num_render_trajectories,
                     video_title="eval_rollouts",
                 )
+        if step % args.llm_feedback_period == 0:
+            #LLM feedback
+            #Updates the environment with the new terrain provided by the LLM
+            llm.llm_feedback(logger, [env, eval_env, render_env], debug=True) 
         
 
 
@@ -194,6 +198,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_file", "-cfg", type=str, required=True)
     parser.add_argument("--llm_config_file", "-llm_cfg", type=str, default='')
+    parser.add_argument("--llm_feedback_period", "-llm_fb", type=int, default=100000)
 
     parser.add_argument("--eval_interval", "-ei", type=int, default=10000)
     parser.add_argument("--num_eval_trajectories", "-neval", type=int, default=5)

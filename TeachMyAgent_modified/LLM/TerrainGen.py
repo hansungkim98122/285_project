@@ -118,6 +118,15 @@ class LLMTerrianGenerator:
         message = self._callOpenAI(self.messages,debug) 
         return message
 
+    def llm_feedback(self, logger, env_list, debug = False):
+        tensorboard_logdir = logger.log_dir
+        ground_y = self.iter_generate(tensorboard_logdir=tensorboard_logdir, debug=debug)
+        y_terrain = np.vstack((ground_y,ground_y + 100)) #100 is the hardcoded offset for the ceiling   
+    
+        assert y_terrain.shape == (2,200)
+
+        [env_.set_terrain(y_terrain, water_level = -100) for env_  in env_list]
+        
     def _callOpenAI(self,messages,debug:bool = False):
     
         response_cur = None
