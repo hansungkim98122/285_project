@@ -14,6 +14,7 @@ import gym
 from gym import wrappers
 import numpy as np
 import torch
+import pdb
 from cs285.infrastructure import pytorch_util as ptu
 import tqdm
 
@@ -120,7 +121,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         #Training for one environment
         reset_env_training()
         if j > 0:
-            print('LLM Teacher has updated the environment!')
+            print(f'Iter: {j} LLM Teacher has updated the environment!')
             print('Resetting the environment...')
         for step in tqdm.trange(config["total_steps"], dynamic_ncols=True):
             epsilon = exploration_schedule.value(step)
@@ -238,7 +239,12 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
                     break #break out of training loop
                 else:
                     pass
-        
+    #Save the model
+    if args.mode == 'llm':
+        model_name = 'llm_'
+    else:
+        model_name = ''
+    agent.save(os.path.abspath(os.path.join(os.getcwd(), os.pardir)) + '/285_project/model/' + model_name)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -260,7 +266,10 @@ def main():
     args = parser.parse_args()
 
     # create directory for logging
-    logdir_prefix = ""  # keep for autograder
+    if args.mode == 'llm':
+        logdir_prefix = args.mode + "_" + str(args.llm_num_envs) + "_envs_" + str(args.llm_feedback_period) + "_feedback_period_"
+    else:
+        logdir_prefix = args.mode + "_" + str(args.llm_num_envs) + "_envs_"
 
     config = make_config(args.config_file)
     logger = make_logger(logdir_prefix, config)

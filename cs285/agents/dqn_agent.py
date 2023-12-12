@@ -176,3 +176,13 @@ class DQNAgent(nn.Module):
             self.update_target_critic()
 
         return critic_stats
+    
+    def save(self, filepath: str):
+        torch.save({'model_state_dict': self.critic.state_dict(),
+            'optimizer_state_dict': self.critic_optimizer.state_dict()}, filepath + '_dqn_model.pt')
+        
+    def load(self, save_file: str):
+        checkpoint = torch.load(save_file)
+        print('Model loaded: {}'.format(save_file))
+        self.critic.load_state_dict(checkpoint['model_state_dict'])
+        self.critic_optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
