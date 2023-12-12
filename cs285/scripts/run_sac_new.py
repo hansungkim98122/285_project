@@ -187,7 +187,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
                     max_videos_to_save=args.num_render_trajectories,
                     video_title="eval_rollouts",
                 )
-        if args.mode == 'llm' and step % args.llm_feedback_period == 0:
+        if args.mode == 'llm' and step % args.llm_feedback_period == 0 and step > 0:
             #LLM feedback
             #Updates the environment with the new terrain provided by the LLM
             llm.llm_feedback(logger, [env, eval_env, render_env], debug=True)

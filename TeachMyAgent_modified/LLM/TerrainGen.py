@@ -74,7 +74,7 @@ class LLMTerrianGenerator:
 
     
        # Loading all text prompts
-        prompt_dir = './Prompt'
+        prompt_dir = '/home/hansung/Repository/cs285/285_project/TeachMyAgent_modified/LLM/Prompt'
         self.initial_system = file_to_string(f'{prompt_dir}/initial_system.txt')
         
         self.code_output_tip = file_to_string(f'{prompt_dir}/code_output_tip.txt')

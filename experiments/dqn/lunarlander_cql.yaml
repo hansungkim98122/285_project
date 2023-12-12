@@ -4,6 +4,7 @@ exp_name: "lunarlander_cql"
 use_double_q: true
 training_steps: 100000
 
+target_update_period: 10
 cql_alpha: 0.1
 batch_size: 64
 hidden_size: 16
