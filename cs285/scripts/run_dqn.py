@@ -116,9 +116,12 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         if isinstance(replay_buffer, MemoryEfficientReplayBuffer):
             replay_buffer.on_reset(observation=observation[-1, ...])
 
-    for j in range(20):    
+    for j in range(args.llm_num_envs):    
         #Training for one environment
         reset_env_training()
+        if j > 0:
+            print('LLM Teacher has updated the environment!')
+            print('Resetting the environment...')
         for step in tqdm.trange(config["total_steps"], dynamic_ncols=True):
             epsilon = exploration_schedule.value(step)
             
@@ -156,7 +159,6 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
             # Handle episode termination
             if done:
                 reset_env_training()
-
                 logger.log_scalar(info["episode"]["r"], "train_return", step)
                 logger.log_scalar(info["episode"]["l"], "train_ep_len", step)
             else:
@@ -226,16 +228,13 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
                 #Updates the environment with the new terrain provided by the LLM
                 # llm.llm_feedback(logger, [env, eval_env, render_env], debug=True)
                 
-                
                 env_param_dict = llm.iter_generate(logger.log_dir, debug=False)
 
                 if prev_env_param_dict != env_param_dict:  #llm changes environment
-                    print(env.gravity, env.wind_power, env.turbulence_power)
-                    gravity, wind_power, turbulence = env_param_dict['gravity'], env_param_dict['wind_power'], env_param_dict['turbulence_power']
-                    env.gravity = gravity, env.wind_power = wind_power, env.turbulence_power = turbulence
-                    eval_env.gravity = gravity, eval_env.wind_power = wind_power, eval_env.turbulence_power = turbulence
-                    render_env.gravity = gravity, render_env.wind_power = wind_power, render_env.turbulence_power = turbulence
-                    print(env.gravity, env.wind_power, env.turbulence_power)
+                    gravity, wind_power, turbulence_power = env_param_dict['gravity'], env_param_dict['wind_power'], env_param_dict['turbulence_power']
+                    env.gravity, env.wind_power, env.turbulence_power = gravity, wind_power, turbulence_power
+                    eval_env.gravity, eval_env.wind_power, eval_env.turbulence_power = gravity, wind_power, turbulence_power
+                    render_env.gravity, render_env.wind_power, render_env.turbulence_power = gravity, wind_power, turbulence_power
                     break #break out of training loop
                 else:
                     pass
@@ -246,6 +245,7 @@ def main():
     parser.add_argument("--config_file", "-cfg", type=str, required=True)
     parser.add_argument("--llm_config_file", "-llm_cfg", type=str, default='')
     parser.add_argument("--llm_feedback_period", "-llm_fb", type=int, default=100000)
+    parser.add_argument("--llm_num_envs", "-llm_n_env", type=int, default=10)
 
     parser.add_argument("--eval_interval", "-ei", type=int, default=10000)
     parser.add_argument("--num_eval_trajectories", "-neval", type=int, default=5)
