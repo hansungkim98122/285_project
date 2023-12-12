@@ -218,10 +218,17 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
                     max_videos_to_save=args.num_render_trajectories,
                     video_title="eval_rollouts",
                 )
-        if args.mode == 'llm' and step % args.llm_feedback_period == 0:
+        if args.mode == 'llm' and step % args.llm_feedback_period == 0 and step>0 :
             #LLM feedback
+            print(f"step: {step} LLM feedback")
             #Updates the environment with the new terrain provided by the LLM
-            llm.llm_feedback(logger, [env, eval_env, render_env], debug=True)
+            # llm.llm_feedback(logger, [env, eval_env, render_env], debug=True)
+            env_param_dict = llm.iter_generate(logger.log_dir, debug=False)
+            gravity, wind_power, turbulence = env_param_dict['gravity'], env_param_dict['wind_power'], env_param_dict['turbulence_power']
+            env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
+            eval_env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
+            render_env = config["make_env"](render=True,gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
+        
 
 def main():
     parser = argparse.ArgumentParser()

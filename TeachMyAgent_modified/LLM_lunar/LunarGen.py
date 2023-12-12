@@ -128,28 +128,48 @@ class LLMLunarEnvGenerator:
         
         logging.info(f"Generating samples with {self.model}")
         total_samples = 0
-        logging.debug(f"Messages: {messages}")
-        for attempt in range(10):
+        logging.debug(f"Messages: {messages}\n*********************")
+        while True:
+            for attempt in range(10):
+                try:
+                    response_cur = openai.ChatCompletion.create(
+                        model=self.model,
+                        messages=messages,
+                        # temperature=self.temperature,
+                        # n=self.chunk_size
+                    )
+                    total_samples += self.chunk_size
+                    logging.info("LLM call succeeded!")
+                    break
+                except Exception as e:
+                    if attempt >= 10:
+                        self.chunk_size = max(int(self.chunk_size / 2), 1)
+                    logging.info(f"Attempt {attempt+1} failed with error: {e}")
+                    time.sleep(1)
+
+            if response_cur is None:
+                logging.info("Code terminated due to too many failed attempts!")
+                exit()
+
+            self._log_messge(response_cur)
+            
+            raw_ret = response_cur['choices'][0]['message']['content']
             try:
-                response_cur = openai.ChatCompletion.create(
-                    model=self.model,
-                    messages=messages,
-                    # temperature=self.temperature,
-                    # n=self.chunk_size
-                )
-                total_samples += self.chunk_size
-                logging.info("LLM call succeeded!")
-                break
+                extract = raw_ret.split('{')[-1].split('}')[0].split(',')
+                ret_key = [x.split(':')[0] for x in extract]
+                ret_value = [float(x.split(':')[1]) for x in extract]
+                ret = {}
+                for i in range(3):
+                    ret[eval(ret_key[i])] = ret_value[i]
+                self.logger.info(f"***********************\nRet: {ret}\n************************")
+                break 
             except Exception as e:
-                if attempt >= 10:
-                    self.chunk_size = max(int(self.chunk_size / 2), 1)
-                logging.info(f"Attempt {attempt+1} failed with error: {e}")
-                time.sleep(1)
-
-        if response_cur is None:
-            logging.info("Code terminated due to too many failed attempts!")
-            exit()
-
+                logging.info(f"Error: {e}")
+                logging.info(f"Ret: {ret}")
+                logging.info("Ret is not a valid python expression, trying again...")
+                self.responses = self.responses[1:]
+                continue    
+        
         self.responses.extend(response_cur['choices'])
         prompt_tokens = response_cur['usage']['prompt_tokens']
         total_completion_token += response_cur['usage']['completion_tokens']
@@ -157,12 +177,10 @@ class LLMLunarEnvGenerator:
 
 
         # Logging Token Information
-        logging.info(f"Prompt Tokens: {prompt_tokens}, Completion Tokens: {total_completion_token}, Total Tokens: {total_token}")
+        # logging.info(f"Prompt Tokens: {prompt_tokens}, Completion Tokens: {total_completion_token}, Total Tokens: {total_token}")
     
-        self._log_messge(response_cur)
-        
-        ret = self.responses[0]['message']['content']
-        return eval(ret)
+        logging.info(f"This is the generated settings: {ret}")
+        return ret
     
     
     def _update_message(self,tensorboard_logdir: str = None):
@@ -185,8 +203,10 @@ class LLMLunarEnvGenerator:
         logging.info(tensorboard_logs.keys())
         # Add reward components log to the feedback
         for metric in tensorboard_logs:
-            if "/" not in metric:
+            if "/" not in metric and len(tensorboard_logs[metric]) > 0:
                 metric_cur = [round(x,2) for x in tensorboard_logs[metric][::epoch_freq]]
+                # print(metric)
+                # print(tensorboard_logs[metric])
                 metric_cur_min = min(tensorboard_logs[metric])
                 metric_cur_max = max(tensorboard_logs[metric])
                 metric_cur_mean = sum(tensorboard_logs[metric]) / len(tensorboard_logs[metric])           
@@ -196,7 +216,7 @@ class LLMLunarEnvGenerator:
         # code_feedbacks.append(self.code_feedback)
         content += self.code_feedback  
         content += self.code_output_tip
-        logging.info(f"context: {content}")
+        # logging.info(f"context: {content}")
         if len(self.messages) == 2:
             self.messages += [{"role": "assistant", "content": self.responses[0]["message"]["content"]}]
             self.messages += [{"role": "user", "content": content}]

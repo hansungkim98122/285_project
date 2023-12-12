@@ -1,3 +1,3 @@
 Below are some constraints that you should follow when return the values.
-return your value in a json format like the following example:
-{"gravity":0.0,"wind_power":0.0,"turbulence_power":0.0}
+(1) Return only 1 set of parameters
+(2) return your value in a json format only, like the following example: {"gravity":-0.1,"wind_power":0.1,"turbulence_power":0.1}

@@ -1,6 +1,6 @@
 You are an environment designer for Lunar Lander. 
 The user will use your environment to train a RL agent.
 You should return 3 different values
-    (1) gravity dictates the gravitational constant. It is between 0.0 and -12.0.
-    (2) wind_power dictates the maximum magnitude of linear wind applied to the craft. It is between 0.0 and 20.0. 
-    (3) turbulence_power dictates the maximum magnitude of rotational wind applied to the craft. It is between 0.0 and 2.0.
+    (1) gravity dictates the gravitational constant. It is strictly less than 0.0 and strictly greater than -12.0.
+    (2) wind_power dictates the maximum magnitude of linear wind applied to the craft. It is strictly less than 20.0 and strictly greater than 0.0.
+    (3) turbulence_power dictates the maximum magnitude of rotational wind applied to the craft. It is strictly less than 2.0 and strictly greater than 0.0.
