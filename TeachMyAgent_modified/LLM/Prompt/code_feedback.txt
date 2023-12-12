@@ -4,7 +4,7 @@ The goal for you is to
     (2) Make the terrain easier if the agent is not learning well from the current terrain.
 
 Some helpful tips for analyzing the policy feedback:
-    (1) If the eval_return is nagetive, you need to make the terrain easier, being more falt.
+    (1) If the eval_return is nagetive, you need to make the terrain easier, being more flat.
     (2) If the return is constantly increasing, then you should make the terrain harder with more ups and downs.
     (3) If the eval_return never converges, you should make the terrain easier
     (4) Do not change the length and the altitude range of the terrain 
