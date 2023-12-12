@@ -35,7 +35,7 @@ python test_imports.py
 python test_env.py
 ```
 
-# Run Experiments
+# Run Experiments (Parkour-v0 Environment)
 
 Manual
 
@@ -70,3 +70,11 @@ python cs285/scripts/run_ppo.py -cfg experiments/ppo/parkour.yaml -nvid 1 --log_
 ```
 
 
+## Experiments (LunarLander-V2 environment)
+```
+python cs285/scripts/run_dqn.py -cfg experiments/dqn/lunarlander_doubleq.yaml --log_interval 15
+```
+
+```
+python cs285/scripts/run_cql.py -cfg experiments/dqn/lunarlander_cql.yaml --log_interval 15
+```

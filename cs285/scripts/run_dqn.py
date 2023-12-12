@@ -1,9 +1,7 @@
-import os
 import time
+import argparse
 import yaml
-
-from cs285.agents.sac import SACAgent
-from cs285.infrastructure.replay_buffer import ReplayBuffer
+from cs285.agents.dqn_agent import DQNAgent
 import cs285.env_configs
 
 import os
@@ -21,11 +19,11 @@ import tqdm
 
 from cs285.infrastructure import utils
 from cs285.infrastructure.logger import Logger
+from cs285.infrastructure.replay_buffer import MemoryEfficientReplayBuffer, ReplayBuffer
 
 from scripting_utils import make_logger, make_config
 
-import argparse
-import TeachMyAgent.environments
+MAX_NVIDEO = 2
 
 
 def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
@@ -36,18 +34,9 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
 
     # make the gym environment
     if args.mode == 'manual':
-        env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, max_steps = config["ep_len"])
-        eval_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, max_steps = config["ep_len"])
-        render_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, max_steps = config["ep_len"])
-
-        input_vector = np.array([-0.058,0.912,0.367])
-        env.set_environment(input_vector=input_vector, water_level = -100)
-
-        input_vector = np.array([-0.058,0.912,0.367])
-        eval_env.set_environment(input_vector=input_vector, water_level = -100)
-
-        input_vector = np.array([-0.058,0.912,0.367])
-        render_env.set_environment(input_vector=input_vector, water_level = -100)
+        env = config["make_env"]()
+        eval_env = config["make_env"]()
+        render_env = config["make_env"](render=True)
     else:
         #Load LLM config
         with open(args.llm_config_file, 'r') as f:
@@ -60,102 +49,130 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
             print('LLM successfully Generated')
         except:
             print('ERROR: Could not initialize LLM. Exiting.')
-
-        #Use LLM
-        env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, mode='llm', max_steps = config["ep_len"])
-        eval_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, mode='llm', max_steps = config["ep_len"])
-        render_env = config["make_env"](agent_body_type='classic_bipedal', movable_creepers=True, mode='llm', max_steps = config["ep_len"])
-
-        ground_y = llm.init_generate(debug=True) #(200,)
-        y_terrain = np.vstack((ground_y,ground_y + 100)) #100 is the hardcoded offset for the ceiling
-
-        assert y_terrain.shape == (2,200)
-
-        env.set_terrain(y_terrain, water_level = -100)
-        eval_env.set_terrain(y_terrain, water_level = -100)
-        render_env.set_terrain(y_terrain, water_level = -100)
-
-    ep_len = config["ep_len"] or env.spec.max_episode_steps
-    batch_size = config["batch_size"] or batch_size
+    exploration_schedule = config["exploration_schedule"]
     discrete = isinstance(env.action_space, gym.spaces.Discrete)
-    assert (
-        not discrete
-    ), "Our actor-critic implementation only supports continuous action spaces. (This isn't a fundamental limitation, just a current implementation decision.)"
 
-    ob_shape = env.observation_space.shape
-    ac_dim = env.action_space.shape[0]
+    assert discrete, "DQN only supports discrete action spaces"
 
-    config["agent_kwargs"]['action_range'] = [
-        float(env.action_space.low.min()),
-        float(env.action_space.high.max())
-    ]
-    config["agent_kwargs"]['device'] = ptu.device
-    
-    fps = 20
-    # initialize agent
-    agent = SACAgent(
-        ob_shape,
-        ac_dim,
+    agent = DQNAgent(
+        env.observation_space.shape,
+        env.action_space.n,
         **config["agent_kwargs"],
     )
 
-    replay_buffer = ReplayBuffer(config["replay_buffer_capacity"])
-    train_freq = config['training_freq']
-    observation = env.reset()
-    
-    for step in tqdm.trange(config["total_steps"], dynamic_ncols=True):
-        if step < config["random_steps"]:
-            action = env.action_space.sample()
-        else:
-            action = agent.act(observation)
-        # Step the environment and add the data to the replay buffer
-        next_observation, reward, done, info = env.step(action)
-        replay_buffer.insert(
-            observation=observation,
-            action=action,
-            reward=reward,
-            next_observation=next_observation,
-            done=done and not info.get("TimeLimit.truncated", False),
+    # simulation timestep, will be used for video saving
+    if "model" in dir(env):
+        fps = 1 / env.model.opt.timestep
+    elif "render_fps" in env.env.metadata:
+        fps = env.env.metadata["render_fps"]
+    else:
+        fps = 4
+
+    ep_len = env.spec.max_episode_steps
+
+    observation = None
+
+    # Replay buffer
+    if len(env.observation_space.shape) == 3:
+        stacked_frames = True
+        frame_history_len = env.observation_space.shape[0]
+        assert frame_history_len == 4, "only support 4 stacked frames"
+        replay_buffer = MemoryEfficientReplayBuffer(
+            frame_history_len=frame_history_len
+        )
+    elif len(env.observation_space.shape) == 1:
+        stacked_frames = False
+        replay_buffer = ReplayBuffer()
+    else:
+        raise ValueError(
+            f"Unsupported observation space shape: {env.observation_space.shape}"
         )
 
+    def reset_env_training():
+        nonlocal observation
+
+        observation = env.reset()
+
+        assert not isinstance(
+            observation, tuple
+        ), "env.reset() must return np.ndarray - make sure your Gym version uses the old step API"
+        observation = np.asarray(observation)
+
+        if isinstance(replay_buffer, MemoryEfficientReplayBuffer):
+            replay_buffer.on_reset(observation=observation[-1, ...])
+
+    reset_env_training()
+
+    for step in tqdm.trange(config["total_steps"], dynamic_ncols=True):
+        epsilon = exploration_schedule.value(step)
+        
+        # TODO(student): Compute action
+        action = agent.get_action(observation, epsilon=epsilon)
+
+        # TODO(student): Step the environment
+        next_observation, reward, done, info = env.step(action)
+        truncated = info.get("TimeLimit.truncated", False)
+
+        terminated = done and not truncated
+
+
+        # TODO(student): Add the data to the replay buffer
+        if isinstance(replay_buffer, MemoryEfficientReplayBuffer):
+            # We're using the memory-efficient replay buffer,
+            # so we only insert next_observation (not observation)
+            next_observation = np.asarray(next_observation)
+            replay_buffer.insert(
+                action=action,
+                reward=reward,
+                next_observation=next_observation[-1],
+                done=terminated,
+            )
+        else:
+            # We're using the regular replay buffer
+            replay_buffer.insert(
+                observation=observation,
+                action=action,
+                reward=reward,
+                next_observation=next_observation,
+                done=terminated,
+            )
+
+        # Handle episode termination
         if done:
+            reset_env_training()
+
             logger.log_scalar(info["episode"]["r"], "train_return", step)
             logger.log_scalar(info["episode"]["l"], "train_ep_len", step)
-            observation = env.reset()
-
-            #training logging for debugging
-            # train_return = info["episode"]["r"]
-            # train_ep_len = info["episode"]["l"]
-            # print(f'Step: {step} Train return: {train_return}, ep len:{train_ep_len}')
         else:
             observation = next_observation
-        
-        
-        # Train the agent
-        if step >= config["training_starts"]:
-            
-            for _ in range(train_freq):
-                batch = replay_buffer.sample(config['batch_size'])
-                
-                update_info = agent.update(ptu.from_numpy(batch['observations']),ptu.from_numpy(batch['actions']),ptu.from_numpy(batch['rewards']),ptu.from_numpy(batch['next_observations']),ptu.from_numpy(batch['dones']),step)
 
-            # Logging
-            # update_info["actor_lr"] = agent.actor_lr_scheduler.get_last_lr()[0]
-            # update_info["critic_lr"] = agent.critic_lr_scheduler.get_last_lr()[0]
+        # Main DQN training loop
+        if step >= config["learning_starts"]:
+            # TODO(student): Sample config["batch_size"] samples from the replay buffer
+            batch = replay_buffer.sample(config['batch_size'])
+
+            # Convert to PyTorch tensors
+            batch = ptu.from_numpy(batch)
+
+            # TODO(student): Train the agent. `batch` is a dictionary of numpy arrays,
+            update_info = agent.update(batch['observations'],batch['actions'],batch['rewards'],batch['next_observations'],batch['dones'],step)
+
+            # Logging code
+            update_info["epsilon"] = epsilon
+            update_info["lr"] = agent.lr_scheduler.get_last_lr()[0]
 
             if step % args.log_interval == 0:
                 for k, v in update_info.items():
                     logger.log_scalar(v, k, step)
-                    logger.log_scalars
                 logger.flush()
 
-        # Run evaluation
         if step % args.eval_interval == 0:
+            # Evaluate
             trajectories = utils.sample_n_trajectories(
                 eval_env,
-                policy=agent,
-                ntraj=args.num_eval_trajectories,
-                max_length=ep_len,
+                agent,
+                args.num_eval_trajectories,
+                ep_len,
             )
             returns = [t["episode_statistics"]["r"] for t in trajectories]
             ep_lens = [t["episode_statistics"]["l"] for t in trajectories]
@@ -191,8 +208,6 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
             #LLM feedback
             #Updates the environment with the new terrain provided by the LLM
             llm.llm_feedback(logger, [env, eval_env, render_env], debug=True)
-        
-
 
 def main():
     parser = argparse.ArgumentParser()

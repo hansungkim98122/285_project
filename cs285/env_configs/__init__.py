@@ -3,6 +3,7 @@ from .dqn_basic_config import basic_dqn_config
 from .sac_config import sac_config
 from .sac_config_new import sac_config_new
 from .ppo_config import ppo_config
+from .cql_config import cql_config
 
 configs = {
     "dqn_atari": atari_dqn_config,
@@ -10,4 +11,5 @@ configs = {
     "sac": sac_config,
     "sac_new": sac_config_new,
     "ppo": ppo_config,
+    "cql": cql_config,
 }

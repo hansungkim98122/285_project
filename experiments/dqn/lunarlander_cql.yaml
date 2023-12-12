@@ -1,0 +1,10 @@
+base_config: cql
+env_name: LunarLander-v2
+exp_name: "lunarlander_cql"
+use_double_q: true
+training_steps: 100000
+
+cql_alpha: 0.1
+batch_size: 64
+hidden_size: 16
+num_layers: 2
