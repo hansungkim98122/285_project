@@ -15,9 +15,10 @@ campain_logs/
 .idea/
 
 # Byte-compiled / optimized / DLL files
-__pycache__/
+
 *.py[cod]
 *$py.class
+*.pyc 
 
 # C extensions
 *.so
@@ -37,7 +38,7 @@ sdist/
 var/
 wheels/
 share/python-wheels/
-*.egg-info/
+*.egg-info/*
 .installed.cfg
 *.egg
 MANIFEST
@@ -117,3 +118,16 @@ cython_debug/
 llmlog/
 .DS_Store
 *.png
+
+data/
+
+.DS_Store
+cs285.egg-info/*
+cs285/.DS_Store
+cs285/agents/__pycache__/*
+cs285/data/*
+cs285/env_configs/__pycache__/*
+cs285/infrastructure/__pycache__/*
+cs285/networks/__pycache__/*
+cs285/scripts/__pycache__/*
+data/*
