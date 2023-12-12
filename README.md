@@ -61,7 +61,7 @@ Automatic Curriculum Learning via LLM:
 
 SAC Agent
 ```
-python cs285/scripts/run_sac.py -cfg experiments/sac/parkour.yaml -nvid 1 --log_interval 15 --mode llm -llm_cfg experiments/llm_config.yaml -llm_fb 100000
+python cs285/scripts/run_sac_new.py -cfg experiments/sac_new/parkour.yaml -nvid 1 --log_interval 15 --mode llm -llm_cfg experiments/llm_config.yaml -llm_fb 100000
 ```
 
 PPO Agent
