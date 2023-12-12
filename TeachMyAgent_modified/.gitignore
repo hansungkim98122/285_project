@@ -15,11 +15,11 @@ campain_logs/
 .idea/
 
 # Byte-compiled / optimized / DLL files
-__pycache__/
+
 *.py[cod]
 *$py.class
 *.pyc 
-__pycache__/
+__pycache__/*
 
 # C extensions
 *.so
@@ -39,7 +39,7 @@ sdist/
 var/
 wheels/
 share/python-wheels/
-*.egg-info/
+*.egg-info/*
 .installed.cfg
 *.egg
 MANIFEST
