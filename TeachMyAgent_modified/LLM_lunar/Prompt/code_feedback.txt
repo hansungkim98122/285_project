@@ -1,0 +1,16 @@
+Please carefully analyze the policy feedback and provide a environment setting. 
+The goal for you is to
+    (1) Make the environment harder if the agent is learning well and is able to landing easily.
+    (2) Make the environment easier if the agent is learning pooly and cannot land easily.
+
+Some tips for analyzing the performance:
+    (1) If the eval_return is constantly nagetive, you should make the environment easier.
+    (2) If the eval_return converges very fast, you should make the environment harder.
+    (3) If the eval_return is fluctuating, you should make the environment eaiser.
+    (4) If the critic_loss is not converging, you should make the environment easier.
+
+Some helpful tips for altering the environment:
+    (1) You can make the environment harder by increasing the gravity.
+    (2) You can make the environment harder by increasing the wind_power.
+    (3) You can make the environment harder by increasing the turbulence_power.
+    (4)

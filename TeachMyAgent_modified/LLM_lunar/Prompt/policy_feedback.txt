@@ -1,0 +1,1 @@
+We trained a RL policy using the provided terrains and tracked global policy metrics such as evaluation return and episode lengths after every {epoch_freq} epochs and the maximum, mean, minimum values encountered:
