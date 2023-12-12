@@ -58,6 +58,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
             print('ERROR: Could not initialize LLM. Exiting.')
         enable_wind = True #Always set to true
         env_param_dict = llm.init_generate(debug=False)
+        prev_env_param_dict = env_param_dict
         gravity, wind_power, turbulence = env_param_dict['gravity'], env_param_dict['wind_power'], env_param_dict['turbulence_power']
         env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
         eval_env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
@@ -115,119 +116,129 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         if isinstance(replay_buffer, MemoryEfficientReplayBuffer):
             replay_buffer.on_reset(observation=observation[-1, ...])
 
-    reset_env_training()
+    for j in range(20):    
+        #Training for one environment
+        reset_env_training()
+        for step in tqdm.trange(config["total_steps"], dynamic_ncols=True):
+            epsilon = exploration_schedule.value(step)
+            
+            # TODO(student): Compute action
+            action = agent.get_action(observation, epsilon=epsilon)
 
-    for step in tqdm.trange(config["total_steps"], dynamic_ncols=True):
-        epsilon = exploration_schedule.value(step)
-        
-        # TODO(student): Compute action
-        action = agent.get_action(observation, epsilon=epsilon)
+            # TODO(student): Step the environment
+            next_observation, reward, done, _, info = env.step(action)
+            truncated = info.get("TimeLimit.truncated", False)
 
-        # TODO(student): Step the environment
-        next_observation, reward, done, _, info = env.step(action)
-        truncated = info.get("TimeLimit.truncated", False)
-
-        terminated = done and not truncated
+            terminated = done and not truncated
 
 
-        # TODO(student): Add the data to the replay buffer
-        if isinstance(replay_buffer, MemoryEfficientReplayBuffer):
-            # We're using the memory-efficient replay buffer,
-            # so we only insert next_observation (not observation)
-            next_observation = np.asarray(next_observation)
-            replay_buffer.insert(
-                action=action,
-                reward=reward,
-                next_observation=next_observation[-1],
-                done=terminated,
-            )
-        else:
-            # We're using the regular replay buffer
-            replay_buffer.insert(
-                observation=observation,
-                action=action,
-                reward=reward,
-                next_observation=next_observation,
-                done=terminated,
-            )
+            # TODO(student): Add the data to the replay buffer
+            if isinstance(replay_buffer, MemoryEfficientReplayBuffer):
+                # We're using the memory-efficient replay buffer,
+                # so we only insert next_observation (not observation)
+                next_observation = np.asarray(next_observation)
+                replay_buffer.insert(
+                    action=action,
+                    reward=reward,
+                    next_observation=next_observation[-1],
+                    done=terminated,
+                )
+            else:
+                # We're using the regular replay buffer
+                replay_buffer.insert(
+                    observation=observation,
+                    action=action,
+                    reward=reward,
+                    next_observation=next_observation,
+                    done=terminated,
+                )
 
-        # Handle episode termination
-        if done:
-            reset_env_training()
+            # Handle episode termination
+            if done:
+                reset_env_training()
 
-            logger.log_scalar(info["episode"]["r"], "train_return", step)
-            logger.log_scalar(info["episode"]["l"], "train_ep_len", step)
-        else:
-            observation = next_observation
+                logger.log_scalar(info["episode"]["r"], "train_return", step)
+                logger.log_scalar(info["episode"]["l"], "train_ep_len", step)
+            else:
+                observation = next_observation
 
-        # Main DQN training loop
-        if step >= config["learning_starts"]:
-            # TODO(student): Sample config["batch_size"] samples from the replay buffer
-            batch = replay_buffer.sample(config['batch_size'])
+            # Main DQN training loop
+            if step >= config["learning_starts"]:
+                # TODO(student): Sample config["batch_size"] samples from the replay buffer
+                batch = replay_buffer.sample(config['batch_size'])
 
-            # Convert to PyTorch tensors
-            batch = ptu.from_numpy(batch)
+                # Convert to PyTorch tensors
+                batch = ptu.from_numpy(batch)
 
-            # TODO(student): Train the agent. `batch` is a dictionary of numpy arrays,
-            update_info = agent.update(batch['observations'],batch['actions'],batch['rewards'],batch['next_observations'],batch['dones'],step)
+                # TODO(student): Train the agent. `batch` is a dictionary of numpy arrays,
+                update_info = agent.update(batch['observations'],batch['actions'],batch['rewards'],batch['next_observations'],batch['dones'],step)
 
-            # Logging code
-            update_info["epsilon"] = epsilon
-            update_info["lr"] = agent.lr_scheduler.get_last_lr()[0]
+                # Logging code
+                update_info["epsilon"] = epsilon
+                update_info["lr"] = agent.lr_scheduler.get_last_lr()[0]
 
-            if step % args.log_interval == 0:
-                for k, v in update_info.items():
-                    logger.log_scalar(v, k, step)
-                logger.flush()
+                if step % args.log_interval == 0:
+                    for k, v in update_info.items():
+                        logger.log_scalar(v, k, step)
+                    logger.flush()
 
-        if step % args.eval_interval == 0:
-            # Evaluate
-            trajectories = utils.sample_n_trajectories(
-                eval_env,
-                agent,
-                args.num_eval_trajectories,
-                ep_len,
-            )
-            returns = [t["episode_statistics"]["r"] for t in trajectories]
-            ep_lens = [t["episode_statistics"]["l"] for t in trajectories]
-
-            logger.log_scalar(np.mean(returns), "eval_return", step)
-            logger.log_scalar(np.mean(ep_lens), "eval_ep_len", step)
-            print(f'Step: {step} Eval return: {np.mean(returns)}')
-            if len(returns) > 1:
-                logger.log_scalar(np.std(returns), "eval/return_std", step)
-                logger.log_scalar(np.max(returns), "eval/return_max", step)
-                logger.log_scalar(np.min(returns), "eval/return_min", step)
-                logger.log_scalar(np.std(ep_lens), "eval/ep_len_std", step)
-                logger.log_scalar(np.max(ep_lens), "eval/ep_len_max", step)
-                logger.log_scalar(np.min(ep_lens), "eval/ep_len_min", step)
-
-            if args.num_render_trajectories > 0:
-                video_trajectories = utils.sample_n_trajectories(
-                    render_env,
+            if step % args.eval_interval == 0:
+                # Evaluate
+                trajectories = utils.sample_n_trajectories(
+                    eval_env,
                     agent,
-                    args.num_render_trajectories,
+                    args.num_eval_trajectories,
                     ep_len,
-                    render=True,
                 )
+                returns = [t["episode_statistics"]["r"] for t in trajectories]
+                ep_lens = [t["episode_statistics"]["l"] for t in trajectories]
 
-                logger.log_paths_as_videos(
-                    video_trajectories,
-                    step,
-                    fps=fps,
-                    max_videos_to_save=args.num_render_trajectories,
-                    video_title="eval_rollouts",
-                )
-        if args.mode == 'llm' and step % args.llm_feedback_period == 0 and step>0 :
-            #LLM feedback
-            print(f"step: {step} LLM feedback")
-            #Updates the environment with the new terrain provided by the LLM
-            # llm.llm_feedback(logger, [env, eval_env, render_env], debug=True)
-            env_param_dict = llm.iter_generate(logger.log_dir, debug=False)
-            gravity, wind_power, turbulence = env_param_dict['gravity'], env_param_dict['wind_power'], env_param_dict['turbulence_power']
-            env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
-            eval_env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
-            render_env = config["make_env"](render=True,gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
+                logger.log_scalar(np.mean(returns), "eval_return", step)
+                logger.log_scalar(np.mean(ep_lens), "eval_ep_len", step)
+                print(f'Step: {step} Eval return: {np.mean(returns)}')
+                if len(returns) > 1:
+                    logger.log_scalar(np.std(returns), "eval/return_std", step)
+                    logger.log_scalar(np.max(returns), "eval/return_max", step)
+                    logger.log_scalar(np.min(returns), "eval/return_min", step)
+                    logger.log_scalar(np.std(ep_lens), "eval/ep_len_std", step)
+                    logger.log_scalar(np.max(ep_lens), "eval/ep_len_max", step)
+                    logger.log_scalar(np.min(ep_lens), "eval/ep_len_min", step)
+
+                if args.num_render_trajectories > 0:
+                    video_trajectories = utils.sample_n_trajectories(
+                        render_env,
+                        agent,
+                        args.num_render_trajectories,
+                        ep_len,
+                        render=True,
+                    )
+
+                    logger.log_paths_as_videos(
+                        video_trajectories,
+                        step,
+                        fps=fps,
+                        max_videos_to_save=args.num_render_trajectories,
+                        video_title="eval_rollouts",
+                    )
+            if args.mode == 'llm' and step % args.llm_feedback_period == 0 and step>0 :
+                #LLM feedback
+                print(f"step: {step} LLM feedback")
+                #Updates the environment with the new terrain provided by the LLM
+                # llm.llm_feedback(logger, [env, eval_env, render_env], debug=True)
+                
+                
+                env_param_dict = llm.iter_generate(logger.log_dir, debug=False)
+
+                if prev_env_param_dict != env_param_dict:  #llm changes environment
+                    print(env.gravity, env.wind_power, env.turbulence_power)
+                    gravity, wind_power, turbulence = env_param_dict['gravity'], env_param_dict['wind_power'], env_param_dict['turbulence_power']
+                    env.gravity = gravity, env.wind_power = wind_power, env.turbulence_power = turbulence
+                    eval_env.gravity = gravity, eval_env.wind_power = wind_power, eval_env.turbulence_power = turbulence
+                    render_env.gravity = gravity, render_env.wind_power = wind_power, render_env.turbulence_power = turbulence
+                    print(env.gravity, env.wind_power, env.turbulence_power)
+                    break #break out of training loop
+                else:
+                    pass
         
 
 def main():
