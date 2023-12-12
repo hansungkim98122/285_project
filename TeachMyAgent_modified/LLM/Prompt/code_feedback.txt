@@ -1,4 +1,11 @@
-Please carefully analyze the policy feedback and provide a new, terrain array. Some helpful tips for analyzing the policy feedback:
-    (1) If the return is constantly increasing, then you should make the terrain harder with more ups and downs.
-    (2) If the return converges significantly early, then you should make the terrain easier to be more flat
-Please analyze each existing reward component in the suggested manner above first, and then write the reward function code. 
+Please carefully analyze the policy feedback and provide a new terrain array. 
+The goal for you is to
+    (1) Make the terrain harder if the agent is learning well from the current terrain.
+    (2) Make the terrain easier if the agent is not learning well from the current terrain.
+
+Some helpful tips for analyzing the policy feedback:
+    (1) If the eval_return is nagetive, you need to make the terrain easier, being more falt.
+    (2) If the return is constantly increasing, then you should make the terrain harder with more ups and downs.
+    (3) If the eval_return never converges, you should make the terrain easier
+    (4) Do not change the length and the altitude range of the terrain 
+Please analyze each existing terrain in the suggested manner above first, and then write a new terrain array.

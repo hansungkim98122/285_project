@@ -18,6 +18,8 @@ campain_logs/
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc 
+__pycache__/
 
 # C extensions
 *.so
@@ -117,3 +119,5 @@ cython_debug/
 llmlog/
 .DS_Store
 *.png
+
+data/
