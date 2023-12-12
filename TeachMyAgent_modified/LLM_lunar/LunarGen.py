@@ -110,7 +110,7 @@ class LLMLunarEnvGenerator:
         
     def init_generate(self,debug:bool = False):
         logging.info("Generating initial terrain...")
-        message = self._callOpenAI(self.messages,debug)
+        message = self._callOpenAI(self.messages,debug,init=True)
         return message
 
     def iter_generate(self,tensorboard_logdir: str = None,debug:bool = False):
@@ -119,66 +119,59 @@ class LLMLunarEnvGenerator:
         message = self._callOpenAI(self.messages,debug) 
         return message
 
-    def _callOpenAI(self,messages,debug:bool = False):
+    def _callOpenAI(self,messages,debug:bool = False,init=False):
     
         response_cur = None
-        total_samples = 0
-        total_token = 0
-        total_completion_token = 0
-        
         logging.info(f"Generating samples with {self.model}")
         total_samples = 0
         logging.debug(f"Messages: {messages}\n*********************")
-        while True:
-            for attempt in range(10):
+        if not init:
+            while True:
+                for attempt in range(10):
+                    try:
+                        response_cur = openai.ChatCompletion.create(
+                            model=self.model,
+                            messages=messages,
+                            # temperature=self.temperature,
+                            # n=self.chunk_size
+                        )
+                        total_samples += self.chunk_size
+                        logging.info("LLM call succeeded!")
+                        break
+                    except Exception as e:
+                        if attempt >= 10:
+                            self.chunk_size = max(int(self.chunk_size / 2), 1)
+                        logging.info(f"Attempt {attempt+1} failed with error: {e}")
+                        time.sleep(1)
+
+                if response_cur is None:
+                    logging.info("Code terminated due to too many failed attempts!")
+                    exit()
+
+                self._log_messge(response_cur)
+                
+                raw_ret = response_cur['choices'][0]['message']['content']
                 try:
-                    response_cur = openai.ChatCompletion.create(
-                        model=self.model,
-                        messages=messages,
-                        # temperature=self.temperature,
-                        # n=self.chunk_size
-                    )
-                    total_samples += self.chunk_size
-                    logging.info("LLM call succeeded!")
-                    break
+                    extract = raw_ret.split('{')[-1].split('}')[0].split(',')
+                    ret_key = [x.split(':')[0] for x in extract]
+                    ret_value = [float(x.split(':')[1]) for x in extract]
+                    ret = {}
+                    for i in range(3):
+                        ret[eval(ret_key[i])] = ret_value[i]
+                    self.logger.info(f"***********************\nRet: {ret}\n************************")
+                    break 
                 except Exception as e:
-                    if attempt >= 10:
-                        self.chunk_size = max(int(self.chunk_size / 2), 1)
-                    logging.info(f"Attempt {attempt+1} failed with error: {e}")
-                    time.sleep(1)
-
-            if response_cur is None:
-                logging.info("Code terminated due to too many failed attempts!")
-                exit()
-
-            self._log_messge(response_cur)
+                    logging.info(f"Error: {e}")
+                    logging.info(f"Ret: {ret}")
+                    logging.info("Ret is not a valid python expression, trying again...")
+                    continue    
+        else:
+            ret = {'gravity': -10.0, 'wind_power': 0.0, 'turbulence_power': 0.0}
+            response_cur = {}
+            response_cur['choices'] = [{'message': {'content': str(ret)}}]
             
-            raw_ret = response_cur['choices'][0]['message']['content']
-            try:
-                extract = raw_ret.split('{')[-1].split('}')[0].split(',')
-                ret_key = [x.split(':')[0] for x in extract]
-                ret_value = [float(x.split(':')[1]) for x in extract]
-                ret = {}
-                for i in range(3):
-                    ret[eval(ret_key[i])] = ret_value[i]
-                self.logger.info(f"***********************\nRet: {ret}\n************************")
-                break 
-            except Exception as e:
-                logging.info(f"Error: {e}")
-                logging.info(f"Ret: {ret}")
-                logging.info("Ret is not a valid python expression, trying again...")
-                self.responses = self.responses[1:]
-                continue    
-        
         self.responses.extend(response_cur['choices'])
-        prompt_tokens = response_cur['usage']['prompt_tokens']
-        total_completion_token += response_cur['usage']['completion_tokens']
-        total_token += response_cur['usage']['total_tokens']
 
-
-        # Logging Token Information
-        # logging.info(f"Prompt Tokens: {prompt_tokens}, Completion Tokens: {total_completion_token}, Total Tokens: {total_token}")
-    
         logging.info(f"This is the generated settings: {ret}")
         return ret
     
@@ -226,19 +219,4 @@ class LLMLunarEnvGenerator:
             self.messages[-1] = {"role": "user", "content": content}
 
         logging.info("Message Updated with the newest metric!")
-
-    @staticmethod
-    def smooth_array(arr, window_size:int):
-        if window_size < 1:
-            raise ValueError("Window size must be at least 1")
-        if window_size > len(arr):
-            raise ValueError("Window size is too large")
-            
-        # Create a simple moving average kernel
-        kernel = np.ones(window_size) / window_size
-
-        # Apply the convolution
-        smoothed_arr = np.convolve(arr, kernel, mode='valid')
-
-        return smoothed_arr
 

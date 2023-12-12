@@ -1,0 +1,43 @@
+{
+    "id": "chatcmpl-8V2obh3z9QfBdQ02MFqQVU2to5BlX",
+    "object": "chat.completion",
+    "created": 1702409681,
+    "model": "gpt-3.5-turbo-0613",
+    "choices": [
+        {
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "content": "{\"gravity\": -3.0, \"wind_power\": 10.0, \"turbulence_power\": 1.0}"
+            },
+            "finish_reason": "stop"
+        }
+    ],
+    "usage": {
+        "prompt_tokens": 223,
+        "completion_tokens": 28,
+        "total_tokens": 251
+    },
+    "system_fingerprint": null
+}{
+    "id": "chatcmpl-8V2ohLa0P3sr6mVvOb4CNYu75xQI5",
+    "object": "chat.completion",
+    "created": 1702409687,
+    "model": "gpt-3.5-turbo-0613",
+    "choices": [
+        {
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "content": "{\"gravity\": -5.0, \"wind_power\": 15.0, \"turbulence_power\": 1.5}"
+            },
+            "finish_reason": "stop"
+        }
+    ],
+    "usage": {
+        "prompt_tokens": 1281,
+        "completion_tokens": 28,
+        "total_tokens": 1309
+    },
+    "system_fingerprint": null
+}
