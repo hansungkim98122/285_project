@@ -182,7 +182,7 @@ class DQNAgent(nn.Module):
             'optimizer_state_dict': self.critic_optimizer.state_dict()}, filepath + '_dqn_model.pt')
         
     def load(self, save_file: str):
-        checkpoint = torch.load(save_file)
+        checkpoint = torch.load(save_file, map_location='cpu')
         print('Model loaded: {}'.format(save_file))
         self.critic.load_state_dict(checkpoint['model_state_dict'])
         self.critic_optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
