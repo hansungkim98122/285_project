@@ -2,12 +2,12 @@ Please carefully analyze the policy feedback and provide a new environment setti
 Please follow the following rules.
 You should not change the parameters that you gave in the past round if the agent is still learning, unless:
     (1) The performance of the agent is good and the eval_return has converged. Make the environment harder.
-    (2) The performance of the agent is not increasing at all, showing that it is not learning. Make the environment eaiser.
+    (2) The performance of the agent is not increasing at all, showing that it is not learning. Make the environment easier.
 
 Some tips for analyzing the performance:
     (1) Maximum possible eval_return is 200
     (2) If the eval_return converges fast, you should make the environment harder.
-    (3) If the eval_return is fluctuating without increasing, you should make the environment eaiser.
+    (3) If the eval_return is fluctuating without increasing, you should make the environment easier.
 
 Some helpful tips for altering difficulty of the environment:
     (1) You can make the environment harder by increasing the gravity.
