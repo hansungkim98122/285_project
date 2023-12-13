@@ -48,9 +48,11 @@ python cs285/scripts/run_dqn_baseline.py -cfg experiments/dqn/lunarlander_double
 
 # Evaluation:
 ```
+python evaluate.py -cfg experiments/dqn/lunarlander_doubleq.yaml -neval 100 -nte 10 -bmd model/baseline_50k_13-12-2023_10-57-18_dqn_model.pt -lmd model/llm_50k_13-12-2023_10-17-22_dqn_model.pt
+```
+```
 python evaluate.py -cfg experiments/dqn/lunarlander_doubleq.yaml -neval 5 -nte 5 -bmd <baseline_model_dir> -lmd <llm_model_dir>
 ```
-
 
 ## Extras (LunarLander-V2 environment):
 # Experiments 
