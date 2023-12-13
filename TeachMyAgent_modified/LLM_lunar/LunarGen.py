@@ -148,7 +148,7 @@ class LLMLunarEnvGenerator:
                     logging.info("Code terminated due to too many failed attempts!")
                     exit()
 
-                self._log_messge(response_cur)
+                
                 
                 raw_ret = response_cur['choices'][0]['message']['content']
                 try:
@@ -170,6 +170,7 @@ class LLMLunarEnvGenerator:
             response_cur = {}
             response_cur['choices'] = [{'message': {'content': str(ret)}}]
             
+        self._log_messge(response_cur)
         self.responses.extend(response_cur['choices'])
 
         logging.info(f"This is the generated settings: {ret}")
