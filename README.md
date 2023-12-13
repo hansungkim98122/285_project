@@ -39,10 +39,10 @@ python test_env.py
 python cs285/scripts/run_dqn.py -cfg experiments/dqn/lunarlander_doubleq.yaml --mode llm -llm_cfg experiments/llm_config.yaml -llm_fb 100000 --log_interval 20 -llm_n_env 10
 ```
 
-# Baseline:
+# Baseline (argument -llm_fb must match with what was used to generate <llm_message_name>):
 ```
-python cs285/scripts/run_dqn_baseline.py -cfg experiments/dqn/lunarlander_doubleq.yaml -llm_lfp llmlog/<llm_message_name> --log_interval 20 
-python cs285/scripts/run_dqn_baseline.py -cfg experiments/dqn/lunarlander_doubleq.yaml -llm_lfp llmlog/message_12-12-2023-14-33-08.txt --log_interval 20 
+python cs285/scripts/run_dqn_baseline.py -cfg experiments/dqn/lunarlander_doubleq.yaml -llm_lfp llmlog/<llm_message_name> --log_interval 20  -llm_fb 100000
+python cs285/scripts/run_dqn_baseline.py -cfg experiments/dqn/lunarlander_doubleq.yaml -llm_lfp llmlog/message_12-12-2023-14-33-08.txt --log_interval 20 -llm_fb 100000
 
 ```
 
