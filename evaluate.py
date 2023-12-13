@@ -14,15 +14,11 @@ import numpy as np
 import torch
 import pdb
 from cs285.infrastructure import pytorch_util as ptu
-sys.path.append('/'.join(os.getcwd().split('/')[:-2]) + '/TeachMyAgent_modified/')
-from LLM_lunar.utils.logextractor import LLMLogExtractor
 import tqdm
 
 from cs285.infrastructure import utils
 from cs285.infrastructure.logger import Logger
-from cs285.infrastructure.replay_buffer import MemoryEfficientReplayBuffer, ReplayBuffer
-
-from scripting_utils import make_logger, make_config
+from cs285.scripts.scripting_utils import make_logger, make_config
 
 MAX_NVIDEO = 2
 
@@ -63,7 +59,7 @@ def run_evaluation(config: dict, logger: Logger, args: argparse.Namespace):
 
     ep_len = eval_env.spec.max_episode_steps
     agent_list = [base_agent, llm_agent]
-    for env_ind in range(args.num_test_env):
+    for env_ind in tqdm.tqdm(range(args.num_test_env)):
         #Sample the environment parameters and update
         gravity = np.random.uniform(-11.99,-0.01)
         wind_power = np.random.uniform(0.01,20.00)
