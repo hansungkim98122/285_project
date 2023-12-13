@@ -36,11 +36,19 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     #List of env parameters:
     llm_log_extractor = LLMLogExtractor(args.llm_log_fp)
     env_param_dict_list = llm_log_extractor.extract_param()
+    env_param_dict_list.pop(-1)
+    #Shuffle the list
+    np.random.shuffle(env_param_dict_list)
+   
+    #Testing
+    init_settings = {'gravity':-10.0,'wind_power':0.0, 'turbulence_power': 0.0}
+    env_param_dict_list.insert(0,init_settings)
+
     num_envs = len(env_param_dict_list)
 
-    pdb.set_trace()
     # make the gym environment
     '''
+    DEFAULT PARAMS:
     gravity: float = -10.0,
     enable_wind: bool = False,
     wind_power: float = 15.0,
@@ -48,7 +56,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     '''
     enable_wind = True #Always set to true
     env_param_dict = env_param_dict_list[0] #Initialize the first environment
-    gravity, wind_power, turbulence = env_param_dict['gravity'], env_param_dict['wind_power'], env_param_dict['turbulence']
+    gravity, wind_power, turbulence = env_param_dict['gravity'], env_param_dict['wind_power'], env_param_dict['turbulence_power']
     env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
     eval_env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
     render_env = config["make_env"](render=True,gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
@@ -108,17 +116,18 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     for j in range(num_envs):    
 
         #Update the environment parameters
-        env_param_dict = env_param_dict_list[j]
-        gravity, wind_power, turbulence_power = env_param_dict['gravity'], env_param_dict['wind_power'], env_param_dict['turbulence']
-        env.gravity, env.wind_power, env.turbulence_power = gravity, wind_power, turbulence_power
-        eval_env.gravity, eval_env.wind_power, eval_env.turbulence_power = gravity, wind_power, turbulence_power
-        render_env.gravity, render_env.wind_power, render_env.turbulence_power = gravity, wind_power, turbulence_power
+        if j > 0:
+            env_param_dict = env_param_dict_list[j]
+            gravity, wind_power, turbulence_power = env_param_dict['gravity'], env_param_dict['wind_power'], env_param_dict['turbulence_power']
+            env.gravity, env.wind_power, env.turbulence_power = gravity, wind_power, turbulence_power
+            eval_env.gravity, eval_env.wind_power, eval_env.turbulence_power = gravity, wind_power, turbulence_power
+            render_env.gravity, render_env.wind_power, render_env.turbulence_power = gravity, wind_power, turbulence_power
 
         #Training for one environment
         reset_env_training()
         if j > 0:
             print(f'Iter: {j} Resetting the environment...')
-        for step in tqdm.trange(config["total_steps"], dynamic_ncols=True):
+        for step in tqdm.trange(args.llm_feedback_period, dynamic_ncols=True):
             epsilon = exploration_schedule.value(step)
             
             # TODO(student): Compute action
@@ -227,6 +236,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_file", "-cfg", type=str, required=True)
     parser.add_argument("--llm_log_fp", "-llm_lfp", type=str, required=True)
+    parser.add_argument("--llm_feedback_period", "-llm_fb", type=int, default=100000)
 
     parser.add_argument("--eval_interval", "-ei", type=int, default=10000)
     parser.add_argument("--num_eval_trajectories", "-neval", type=int, default=5)
