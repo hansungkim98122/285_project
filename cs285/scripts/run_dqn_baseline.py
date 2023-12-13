@@ -37,12 +37,15 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     llm_log_extractor = LLMLogExtractor(args.llm_log_fp)
     env_param_dict_list = llm_log_extractor.extract_param()
     env_param_dict_list.pop(-1)
-    #Shuffle the list
-    np.random.shuffle(env_param_dict_list)
-   
+    
     #Testing
     init_settings = {'gravity':-10.0,'wind_power':0.0, 'turbulence_power': 0.0}
     env_param_dict_list.insert(0,init_settings)
+    
+    #Shuffle the list
+    np.random.shuffle(env_param_dict_list)
+   
+
 
     num_envs = len(env_param_dict_list)
 
@@ -56,10 +59,10 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     '''
     enable_wind = True #Always set to true
     env_param_dict = env_param_dict_list[0] #Initialize the first environment
-    gravity, wind_power, turbulence = env_param_dict['gravity'], env_param_dict['wind_power'], env_param_dict['turbulence_power']
-    env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
-    eval_env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
-    render_env = config["make_env"](render=True,gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
+    gravity, wind_power, turbulence_power = env_param_dict['gravity'], env_param_dict['wind_power'], env_param_dict['turbulence_power']
+    env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence_power)
+    eval_env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence_power)
+    render_env = config["make_env"](render=True,gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence_power)
 
     exploration_schedule = config["exploration_schedule"]
     discrete = isinstance(env.action_space, gym.spaces.Discrete)
@@ -123,6 +126,7 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
             eval_env.gravity, eval_env.wind_power, eval_env.turbulence_power = gravity, wind_power, turbulence_power
             render_env.gravity, render_env.wind_power, render_env.turbulence_power = gravity, wind_power, turbulence_power
 
+        print(f'Gravity: {gravity}, Wind Power: {wind_power}, Turbulence Power: {turbulence_power}')
         #Training for one environment
         reset_env_training()
         if j > 0:

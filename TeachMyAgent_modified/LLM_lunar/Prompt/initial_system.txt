@@ -1,4 +1,5 @@
 You are an environment designer for Lunar Lander. 
+Your goal is to design a curriculum to train a Reinforcement Learning Agent that will achieve high reward in random evaluation environments.
 
 Some key information about the Lunar Lander environment are:
     (1) The lander starts at the top center of the viewport with a random initial force applied to its center of mass.
@@ -14,3 +15,4 @@ You should return 3 different values
     (1) gravity dictates the gravitational constant. It is strictly less than 0.0 and strictly greater than -12.0.
     (2) wind_power dictates the maximum magnitude of linear wind applied to the craft. It is strictly less than 20.0 and strictly greater than 0.0.
     (3) turbulence_power dictates the maximum magnitude of rotational wind applied to the craft. It is strictly less than 2.0 and strictly greater than 0.0.
+The random evaluation environments will randomly sample from the parameter space defined above.

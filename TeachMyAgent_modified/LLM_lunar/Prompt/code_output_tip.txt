@@ -1,3 +1,4 @@
 Below are some constraints that you should follow when return the values.
-(1) Return only 1 set of parameters
-(2) return your value in a json format only, like the following example: {"gravity":-0.1,"wind_power":0.1,"turbulence_power":0.1}
+(1) Return only 1 set of parameters.
+(2) Return your value in a json format only, like the following example: {"gravity":-0.1,"wind_power":0.1,"turbulence_power":0.1}.
+(3) You should try to utilize all the ranges of each parameters.
