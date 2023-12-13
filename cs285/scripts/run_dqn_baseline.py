@@ -39,8 +39,8 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     env_param_dict_list.pop(-1)
     
     #Testing
-    init_settings = {'gravity':-10.0,'wind_power':0.0, 'turbulence_power': 0.0}
-    env_param_dict_list.insert(0,init_settings)
+    # init_settings = {'gravity':-10.0,'wind_power':0.0, 'turbulence_power': 0.0}
+    # env_param_dict_list.insert(0,init_settings)
     
     #Shuffle the list
     np.random.shuffle(env_param_dict_list)
