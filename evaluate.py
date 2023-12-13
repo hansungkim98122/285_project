@@ -58,7 +58,7 @@ def run_evaluation(config: dict, logger: Logger, args: argparse.Namespace):
     llm_agent.load(args.llm_model_dir)
 
     ep_len = eval_env.spec.max_episode_steps
-    agent_list = [base_agent, llm_agent]
+    agent_list = [base_agent, llm_agent] 
     for env_ind in tqdm.tqdm(range(args.num_test_env)):
         #Sample the environment parameters and update
         gravity = np.random.uniform(-11.99,-0.01)
