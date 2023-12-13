@@ -6,8 +6,6 @@ import cs285.env_configs
 
 import os
 import sys
-sys.path.append('/'.join(os.getcwd().split('/')[:-2]) + '/TeachMyAgent_modified/')
-from LLM_lunar.LunarGen import LLMLunarEnvGenerator
 import time
 
 import gym
@@ -16,6 +14,8 @@ import numpy as np
 import torch
 import pdb
 from cs285.infrastructure import pytorch_util as ptu
+sys.path.append('/'.join(os.getcwd().split('/')[:-2]) + '/TeachMyAgent_modified/')
+from LLM_lunar.utils.logextractor import LLMLogExtractor
 import tqdm
 
 from cs285.infrastructure import utils
@@ -33,37 +33,25 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
     torch.manual_seed(args.seed)
     ptu.init_gpu(use_gpu=not args.no_gpu, gpu_id=args.which_gpu)
 
-    # make the gym environment
-    if args.mode == 'manual':
-        '''
-        gravity: float = -10.0,
-        enable_wind: bool = False,
-        wind_power: float = 15.0,
-        turbulence_power: float = 1.5,
-        '''
-        enable_wind = True #Always set to true
-        gravity, wind_power, turbulence = -10.0, 0.0, 0.0
-        env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
-        eval_env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
-        render_env = config["make_env"](render=True,gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
-    else:
-        #Load LLM config
-        with open(args.llm_config_file, 'r') as f:
-            llm_config = yaml.load(f, Loader=yaml.FullLoader)
+    #List of env parameters:
+    llm_log_extractor = LLMLogExtractor(args.llm_log_fp)
+    env_param_dict_list = llm_log_extractor.extract_param()
+    num_envs = len(env_param_dict_list)
 
-        #Initialize the terrain generator (LLM)
-        try:
-            llm = LLMLunarEnvGenerator(llm_config)
-            print('LLM successfully Generated')
-        except:
-            print('ERROR: Could not initialize LLM. Exiting.')
-        enable_wind = True #Always set to true
-        env_param_dict = llm.init_generate(debug=False)
-        prev_env_param_dict = env_param_dict
-        gravity, wind_power, turbulence = env_param_dict['gravity'], env_param_dict['wind_power'], env_param_dict['turbulence_power']
-        env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
-        eval_env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
-        render_env = config["make_env"](render=True,gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
+    pdb.set_trace()
+    # make the gym environment
+    '''
+    gravity: float = -10.0,
+    enable_wind: bool = False,
+    wind_power: float = 15.0,
+    turbulence_power: float = 1.5,
+    '''
+    enable_wind = True #Always set to true
+    env_param_dict = env_param_dict_list[0] #Initialize the first environment
+    gravity, wind_power, turbulence = env_param_dict['gravity'], env_param_dict['wind_power'], env_param_dict['turbulence']
+    env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
+    eval_env = config["make_env"](gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
+    render_env = config["make_env"](render=True,gravity=gravity, enable_wind=enable_wind, wind_power=wind_power, turbulence_power=turbulence)
 
     exploration_schedule = config["exploration_schedule"]
     discrete = isinstance(env.action_space, gym.spaces.Discrete)
@@ -117,12 +105,19 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
         if isinstance(replay_buffer, MemoryEfficientReplayBuffer):
             replay_buffer.on_reset(observation=observation[-1, ...])
 
-    for j in range(args.llm_num_envs):    
+    for j in range(num_envs):    
+
+        #Update the environment parameters
+        env_param_dict = env_param_dict_list[j]
+        gravity, wind_power, turbulence_power = env_param_dict['gravity'], env_param_dict['wind_power'], env_param_dict['turbulence']
+        env.gravity, env.wind_power, env.turbulence_power = gravity, wind_power, turbulence_power
+        eval_env.gravity, eval_env.wind_power, eval_env.turbulence_power = gravity, wind_power, turbulence_power
+        render_env.gravity, render_env.wind_power, render_env.turbulence_power = gravity, wind_power, turbulence_power
+
         #Training for one environment
         reset_env_training()
         if j > 0:
-            print(f'Iter: {j} LLM Teacher has updated the environment!')
-            print('Resetting the environment...')
+            print(f'Iter: {j} Resetting the environment...')
         for step in tqdm.trange(config["total_steps"], dynamic_ncols=True):
             epsilon = exploration_schedule.value(step)
             
@@ -223,37 +218,15 @@ def run_training_loop(config: dict, logger: Logger, args: argparse.Namespace):
                         max_videos_to_save=args.num_render_trajectories,
                         video_title="eval_rollouts",
                     )
-            if args.mode == 'llm' and step % args.llm_feedback_period == 0 and step>0 :
-                #LLM feedback
-                print(f"step: {step} LLM feedback")
-                #Updates the environment with the new terrain provided by the LLM
-                # llm.llm_feedback(logger, [env, eval_env, render_env], debug=True)
-                
-                env_param_dict = llm.iter_generate(logger.log_dir, debug=False)
 
-                if prev_env_param_dict != env_param_dict:  #llm changes environment
-                    gravity, wind_power, turbulence_power = env_param_dict['gravity'], env_param_dict['wind_power'], env_param_dict['turbulence_power']
-                    env.gravity, env.wind_power, env.turbulence_power = gravity, wind_power, turbulence_power
-                    eval_env.gravity, eval_env.wind_power, eval_env.turbulence_power = gravity, wind_power, turbulence_power
-                    render_env.gravity, render_env.wind_power, render_env.turbulence_power = gravity, wind_power, turbulence_power
-                    prev_env_param_dict = env_param_dict
-                    break #break out of training loop
-                else:
-                    pass
     #Save the model
-    if args.mode == 'llm':
-        model_name = 'llm_'
-    else:
-        model_name = '_'
-    
+    model_name = 'baseline_'
     agent.save(os.path.abspath(os.path.join(os.getcwd(), os.pardir)) + '/285_project/model/' + model_name+'_'.join(logger.log_dir.split('_')[-2:]))
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config_file", "-cfg", type=str, required=True)
-    parser.add_argument("--llm_config_file", "-llm_cfg", type=str, default='')
-    parser.add_argument("--llm_feedback_period", "-llm_fb", type=int, default=100000)
-    parser.add_argument("--llm_num_envs", "-llm_n_env", type=int, default=10)
+    parser.add_argument("--llm_log_fp", "-llm_lfp", type=str, required=True)
 
     parser.add_argument("--eval_interval", "-ei", type=int, default=10000)
     parser.add_argument("--num_eval_trajectories", "-neval", type=int, default=5)
@@ -268,10 +241,7 @@ def main():
     args = parser.parse_args()
 
     # create directory for logging
-    if args.mode == 'llm':
-        logdir_prefix = args.mode + "_" + str(args.llm_num_envs) + "_envs_" + str(args.llm_feedback_period) + "_feedback_period_"
-    else:
-        logdir_prefix = args.mode + "_" + str(args.llm_num_envs) + "_envs_"
+    logdir_prefix = "baseline_"
 
     config = make_config(args.config_file)
     logger = make_logger(logdir_prefix, config)
