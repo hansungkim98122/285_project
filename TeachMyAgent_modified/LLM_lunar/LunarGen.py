@@ -58,8 +58,7 @@ class LLMLunarEnvGenerator:
         self.chunk_size = 4
         # self.smooth_window = cfg['smooth_window']
         
-        # openai.api_key = cfg['openaikey']
-        openai.api_key = "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"
+        openai.api_key = cfg['openaikey']
         logging.info(f"OpenAI API Key: {openai.api_key}")
         # This is to store all the responses.
         self.responses = []
